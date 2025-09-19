@@ -25,20 +25,16 @@ class MCPTool:
             return bool(shutil.which('npm') or shutil.which('npx'))
         return bool(shutil.which(self.prerequisite))
 
-    def is_installed(self) -> bool:
+    def is_installed(self, registry) -> bool:
         """Check if MCP tool already exists in config."""
-        try:
-            result = subprocess.run(['claude', 'mcp', 'list'], capture_output=True, text=True)
-            return f"{self.name}:" in result.stdout
-        except subprocess.SubprocessError:
-            return False
+        return registry.is_tool_installed(self.name)
 
-    def install(self, project_dir: str = None) -> bool:
+    def install(self, registry, project_dir: str = None) -> bool:
         """Install this MCP tool."""
         if project_dir is None:
             project_dir = os.getcwd()
 
-        if self.is_installed():
+        if self.is_installed(registry=registry):
             print_message('success', f"{self.name} is already installed")
             return True
 
@@ -54,9 +50,9 @@ class MCPTool:
             print_message('error', f"Failed to install {self.name}")
             return False
 
-    def remove(self) -> bool:
+    def remove(self, registry) -> bool:
         """Remove this MCP tool."""
-        if not self.is_installed():
+        if not self.is_installed(registry=registry):
             print_message('info', f"{self.name} is not installed")
             return True
 
@@ -78,6 +74,7 @@ class MCPToolRegistry:
 
     def __init__(self):
         self.tools = self._load_tools()
+        self._installed_tools_cache = None
 
     @staticmethod
     def _load_tools() -> Dict[str, MCPTool]:
@@ -134,6 +131,24 @@ class MCPToolRegistry:
             )
         }
 
+    def _get_installed_tools_output(self) -> Optional[str]:
+        """Get the output from 'claude mcp list' command, cached."""
+        if self._installed_tools_cache is None:
+            try:
+                result = subprocess.run(['claude', 'mcp', 'list'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    self._installed_tools_cache = result.stdout
+                else:
+                    self._installed_tools_cache = ""
+            except subprocess.SubprocessError:
+                self._installed_tools_cache = ""
+        return self._installed_tools_cache
+
+    def is_tool_installed(self, tool_name: str) -> bool:
+        """Check if a specific tool is installed using cached output."""
+        installed_output = self._get_installed_tools_output()
+        return f"{tool_name}:" in installed_output if installed_output else False
+
     def get_tool(self, name: str) -> Optional[MCPTool]:
         """Get a tool by name."""
         return self.tools.get(name)
@@ -148,8 +163,8 @@ class MCPToolRegistry:
 
     def get_installed_tools(self) -> List[str]:
         """Get list of currently installed tool names."""
-        return [name for name, tool in self.tools.items() if tool.is_installed()]
+        return [name for name, tool in self.tools.items() if tool.is_installed(registry=self)]
 
     def get_available_tools(self) -> List[str]:
         """Get list of available but not installed tool names."""
-        return [name for name, tool in self.tools.items() if not tool.is_installed()]
+        return [name for name, tool in self.tools.items() if not tool.is_installed(registry=self)]

@@ -56,7 +56,7 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
         if not tool.check_prerequisites():
             print_message('error', f"Prerequisites not met for {tool_name}. {tool.error_message}")
             print_message('error', f"✗ Failed to install {tool_name}")
-        elif tool.install():
+        elif tool.install(registry=registry):
             print_message('success', f"✓ {tool_name} installed successfully")
         else:
             print_message('error', f"✗ Failed to install {tool_name}")
@@ -81,7 +81,7 @@ def cmd_remove(args, registry: MCPToolRegistry) -> None:
 
         print_message('info', f"Processing: {tool.description}")
 
-        if tool.remove():
+        if tool.remove(registry=registry):
             print_message('success', f"✓ {tool_name} removed successfully")
         else:
             print_message('error', f"✗ Failed to remove {tool_name}")
@@ -89,7 +89,7 @@ def cmd_remove(args, registry: MCPToolRegistry) -> None:
     return None
 
 
-def _display_tool_menu(tools: dict, tool_list: list) -> None:
+def _display_tool_menu(tools: dict, tool_list: list, registry: MCPToolRegistry) -> None:
     """Display the interactive tool selection menu."""
     print(file=sys.stderr)
     print_message('info', "Available MCP Tools:")
@@ -97,7 +97,7 @@ def _display_tool_menu(tools: dict, tool_list: list) -> None:
 
     for i, name in enumerate(tool_list, 1):
         tool = tools[name]
-        status = " (installed)" if tool.is_installed() else ""
+        status = " (installed)" if tool.is_installed(registry=registry) else ""
         print(f"  {i}) {tool.description}{status}", file=sys.stderr)
 
     print("  a) Install all available tools", file=sys.stderr)
@@ -130,12 +130,12 @@ def _parse_selection(selection: str, tool_list: list, available_tools: list) -> 
     return selected
 
 
-def _get_user_tool_selection(tools: dict, available_tools: list) -> list:
+def _get_user_tool_selection(tools: dict, available_tools: list, registry: MCPToolRegistry) -> list:
     """Get tool selection from user through interactive menu."""
     tool_list = list(tools.keys())
 
     while True:
-        _display_tool_menu(tools, tool_list)
+        _display_tool_menu(tools, tool_list, registry)
         selection = input("Select tools to install (comma-separated numbers, 'a' for all, 'q' to quit): ")
 
         selected = _parse_selection(selection, tool_list, available_tools)
@@ -147,7 +147,7 @@ def _get_user_tool_selection(tools: dict, available_tools: list) -> list:
             return selected
 
 
-def _install_selected_tools(selected_tools: list, tools: dict) -> None:
+def _install_selected_tools(selected_tools: list, tools: dict, registry: MCPToolRegistry) -> None:
     """Install the selected tools."""
     print_message('info', f"Installing {len(selected_tools)} MCP tool(s)...")
     print()
@@ -159,7 +159,7 @@ def _install_selected_tools(selected_tools: list, tools: dict) -> None:
         if not tool.check_prerequisites():
             print_message('error', f"Prerequisites not met for {tool_name}. {tool.error_message}")
             print_message('error', f"✗ Failed to install {tool_name}")
-        elif tool.install():
+        elif tool.install(registry=registry):
             print_message('success', f"✓ {tool_name} installed successfully")
         else:
             print_message('error', f"✗ Failed to install {tool_name}")
@@ -180,11 +180,11 @@ def cmd_add_interactive(_args, registry: MCPToolRegistry) -> None:
         print_message('success', "All tools are already installed!")
         return
 
-    selected_tools = _get_user_tool_selection(tools, available_tools)
+    selected_tools = _get_user_tool_selection(tools, available_tools, registry)
     if not selected_tools:
         return
 
-    _install_selected_tools(selected_tools, tools)
+    _install_selected_tools(selected_tools, tools, registry)
 
 
 def main():

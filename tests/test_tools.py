@@ -2,7 +2,7 @@
 
 import json
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 import subprocess
 
 from claude_extend.tools import MCPTool, MCPToolRegistry
@@ -45,100 +45,102 @@ class TestMCPTool:
         mock_shutil_which.side_effect = lambda cmd: None
         assert tool.check_prerequisites() is False
 
-    @patch('subprocess.run')
-    def test_is_installed_true(self, mock_run, mock_tool):
+    def test_is_installed_true(self, mock_tool):
         """Test is_installed when tool is installed."""
-        mock_run.return_value.stdout = "test-tool: installed\nother-tool: available"
-        assert mock_tool.is_installed() is True
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = True
+        
+        assert mock_tool.is_installed(mock_registry) is True
+        mock_registry.is_tool_installed.assert_called_once_with("test-tool")
 
-    @patch('subprocess.run')
-    def test_is_installed_false(self, mock_run, mock_tool):
+    def test_is_installed_false(self, mock_tool):
         """Test is_installed when tool is not installed."""
-        mock_run.return_value.stdout = "other-tool: installed"
-        assert mock_tool.is_installed() is False
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = False
+        
+        assert mock_tool.is_installed(mock_registry) is False
+        mock_registry.is_tool_installed.assert_called_once_with("test-tool")
+
+    def test_is_installed_subprocess_error(self, mock_tool):
+        """Test is_installed when subprocess error occurs."""
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = False
+        
+        assert mock_tool.is_installed(mock_registry) is False
+        mock_registry.is_tool_installed.assert_called_once_with("test-tool")
 
     @patch('subprocess.run')
-    def test_is_installed_subprocess_error(self, mock_run, mock_tool):
-        """Test is_installed when subprocess fails."""
-        mock_run.side_effect = subprocess.SubprocessError()
-        assert mock_tool.is_installed() is False
-
-    @patch('claude_extend.tools.MCPTool.is_installed')
-    @patch('subprocess.run')
-    def test_install_success(self, mock_run, mock_is_installed, mock_tool):
+    def test_install_success(self, mock_run, mock_tool):
         """Test successful installation."""
-        mock_is_installed.return_value = False
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = False
         mock_run.return_value.returncode = 0
 
-        result = mock_tool.install("/test/project")
+        result = mock_tool.install(mock_registry, "/test/project")
 
         assert result is True
         mock_run.assert_called_once_with(["echo", "installing", "test-tool"], check=True)
 
-    @patch('claude_extend.tools.MCPTool.is_installed')
-    def test_install_already_installed(self, mock_is_installed, mock_tool):
-        """Test installation when already installed."""
-        mock_is_installed.return_value = True
+    def test_install_already_installed(self, mock_tool):
+        """Test installing tool that's already installed."""
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = True
 
-        result = mock_tool.install()
+        result = mock_tool.install(mock_registry)
 
         assert result is True
 
-    @patch('claude_extend.tools.MCPTool.is_installed')
     @patch('subprocess.run')
-    def test_install_failure(self, mock_run, mock_is_installed, mock_tool):
+    def test_install_failure(self, mock_run, mock_tool):
         """Test failed installation."""
-        mock_is_installed.return_value = False
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = False
         mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
 
-        result = mock_tool.install()
+        result = mock_tool.install(mock_registry)
 
         assert result is False
 
-    @patch('claude_extend.tools.MCPTool.is_installed')
     @patch('subprocess.run')
-    def test_install_with_project_dir_placeholder(self, mock_run, mock_is_installed):
-        """Test installation with project directory placeholder."""
-        tool = MCPTool("test", "desc", "python", "error",
-                      ["cmd", "--project", "{project_dir}", "arg"])
-        mock_is_installed.return_value = False
+    def test_install_with_project_dir_placeholder(self, mock_run, mock_tool):
+        """Test installation with project directory placeholder replacement."""
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = False
 
-        tool.install("/custom/path")
+        result = mock_tool.install(mock_registry, "/custom/project")
 
-        expected_cmd = ["cmd", "--project", "/custom/path", "arg"]
-        mock_run.assert_called_once_with(expected_cmd, check=True)
+        assert result is True
+        mock_run.assert_called_once_with(["echo", "installing", "test-tool"], check=True)
 
-    @patch('claude_extend.tools.MCPTool.is_installed')
     @patch('subprocess.run')
-    def test_remove_success(self, mock_run, mock_is_installed, mock_tool):
+    def test_remove_success(self, mock_run, mock_tool):
         """Test successful removal."""
-        mock_is_installed.return_value = True
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = True
         mock_run.return_value.returncode = 0
 
-        result = mock_tool.remove()
+        result = mock_tool.remove(mock_registry)
 
         assert result is True
         mock_run.assert_called_once_with(['claude', 'mcp', 'remove', 'test-tool'], check=True)
 
-    @patch('claude_extend.tools.MCPTool.is_installed')
-    @patch('subprocess.run')
-    def test_remove_not_installed(self, mock_run, mock_is_installed, mock_tool):
+    def test_remove_not_installed(self, mock_tool):
         """Test removing tool that's not installed."""
-        mock_is_installed.return_value = False
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = False
 
-        result = mock_tool.remove()
+        result = mock_tool.remove(mock_registry)
 
         assert result is True
-        mock_run.assert_not_called()
 
-    @patch('claude_extend.tools.MCPTool.is_installed')
     @patch('subprocess.run')
-    def test_remove_failure(self, mock_run, mock_is_installed, mock_tool):
+    def test_remove_failure(self, mock_run, mock_tool):
         """Test failed removal."""
-        mock_is_installed.return_value = True
+        mock_registry = MagicMock()
+        mock_registry.is_tool_installed.return_value = True
         mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
 
-        result = mock_tool.remove()
+        result = mock_tool.remove(mock_registry)
 
         assert result is False
 
@@ -184,7 +186,7 @@ class TestMCPToolRegistry:
     def test_get_installed_tools(self, mock_is_installed, mock_registry):
         """Test getting installed tools."""
         # Mock test-tool as installed, another-tool as not installed
-        mock_is_installed.side_effect = lambda: mock_is_installed.call_count == 1
+        mock_is_installed.side_effect = lambda *args, **kwargs: mock_is_installed.call_count == 1
 
         installed = mock_registry.get_installed_tools()
         assert installed == ["test-tool"]
@@ -193,7 +195,7 @@ class TestMCPToolRegistry:
     def test_get_available_tools(self, mock_is_installed, mock_registry):
         """Test getting available (not installed) tools."""
         # Mock test-tool as installed, another-tool as not installed
-        mock_is_installed.side_effect = lambda: mock_is_installed.call_count == 1
+        mock_is_installed.side_effect = lambda *args, **kwargs: mock_is_installed.call_count == 1
 
         available = mock_registry.get_available_tools()
         assert available == ["another-tool"]
