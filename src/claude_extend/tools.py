@@ -101,7 +101,8 @@ class MCPToolRegistry:
                 return tools
                 
             except Exception as e:
-                print_message('warning', f"Failed to load external config: {e}")
+                print_message('warning', f"Failed to load or parse external config at '{config_path}'.")
+                print_message('info', "Please ensure the file exists, is valid JSON, and has correct permissions.")
                 print_message('info', "Falling back to default tool registry")
         
         # Default hardcoded registry

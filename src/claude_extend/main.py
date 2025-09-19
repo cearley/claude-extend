@@ -41,7 +41,7 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
 
     if not args.tools:
         print_message('error', "No tools specified. Use --interactive or specify tool names.")
-        return None
+        return
 
     if not validate_environment():
         sys.exit(1)
@@ -63,13 +63,12 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
         else:
             print_message('error', f"✗ Failed to install {tool_name}")
         print()
-    return None
 
 def cmd_remove(args, registry: MCPToolRegistry) -> None:
     """Remove MCP tools."""
     if not args.tools:
         print_message('error', "No tools specified. Specify tool names to remove.")
-        return None
+        return
 
     if not validate_environment():
         sys.exit(1)
@@ -88,7 +87,6 @@ def cmd_remove(args, registry: MCPToolRegistry) -> None:
         else:
             print_message('error', f"✗ Failed to remove {tool_name}")
         print()
-    return None
 
 
 def _display_tool_menu(tools: dict, tool_list: list, registry: MCPToolRegistry) -> None:

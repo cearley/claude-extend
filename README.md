@@ -1,5 +1,12 @@
 # Claude eXtend (cx)
 
+[![CI](https://github.com/cearley/claude-extend/actions/workflows/ci.yml/badge.svg)](https://github.com/cearley/claude-extend/actions)
+[![codecov](https://codecov.io/gh/cearley/claude-extend/branch/main/graph/badge.svg)](https://codecov.io/gh/cearley/claude-extend)
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![GitHub release](https://img.shields.io/github/v/release/cearley/claude-extend)](https://github.com/cearley/claude-extend/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub last commit](https://img.shields.io/github/last-commit/cearley/claude-extend)](https://github.com/cearley/claude-extend/commits/main)
+
 A CLI tool for managing Model Context Protocol (MCP) server connections with Claude Code.
 
 Claude eXtend allows you to easily add, remove, and manage MCP servers that extend Claude Code's capabilities. It comes with opinionated default MCP tool definitions and can dynamically install servers (e.g., via npx or uvx) or work with pre-installed servers. The default tool definitions can be overridden or extended via external configuration files.
@@ -158,6 +165,10 @@ Model Context Protocol (MCP) servers extend Claude Code's capabilities by provid
 - Development environment tools
 
 Claude eXtend helps you manage which of these installed servers are active in your Claude Code setup.
+
+## Security Considerations
+
+⚠️ **Important**: The `install_command` entries in external `tools.json` configuration files are executed directly on your machine. Only use configuration files from trusted sources, and always review their contents before use. Treat these files like any other script - they should be reviewed and trusted before execution.
 
 ## Requirements
 

@@ -261,7 +261,7 @@ class TestMCPToolRegistryExternalConfig:
         
         # Should show warning message
         captured = capsys.readouterr()
-        assert "Failed to load external config" in captured.err
+        assert "Failed to load or parse external config" in captured.err
 
     def test_load_tools_no_external_config(self, monkeypatch, mock_claude_mcp_calls):
         """Test loading with no external config (defaults only)."""

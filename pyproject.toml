@@ -28,7 +28,6 @@ Issues = "https://github.com/cearley/claude-extend/issues"
 cx = "claude_extend.main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/claude_extend"]
 
 [tool.hatch.version]
 path = "src/claude_extend/__init__.py"
