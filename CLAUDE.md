@@ -38,6 +38,16 @@ This tool manages MCP server connections for Claude Code by:
 
 ## Development Commands
 
+**Install dependencies:**
+```bash
+uv sync
+```
+
+**Install development dependencies:**
+```bash
+uv sync --extra dev
+```
+
 **Run during development:**
 ```bash
 python -m src.claude_extend.main
@@ -45,7 +55,7 @@ python -m src.claude_extend.main
 
 **Test the package locally:**
 ```bash
-uv run python -m src.claude_extend.main
+uv run cx
 ```
 
 **Install for testing:**
@@ -90,11 +100,6 @@ uv run pytest --cov=claude_extend --cov-report=term-missing
 uv run pytest tests/test_tools.py -v
 ```
 
-**Install development dependencies:**
-```bash
-uv sync --extra dev
-```
-
 ## Test Structure
 
 - `tests/test_tools.py` - Unit tests for MCP tool registry and management
@@ -108,3 +113,36 @@ uv sync --extra dev
 - Configuration typically stored in Claude Code's settings/config files
 - Tool should handle JSON configuration management
 - May need to interact with Claude Code's MCP server registry
+
+## External Configuration
+
+Claude eXtend supports loading custom MCP tool definitions from external JSON configuration files. This allows extending the tool registry without modifying source code.
+
+### Configuration File Locations (checked in order)
+
+1. **Environment variable**: `CLAUDE_EXTEND_CONFIG` (full path to config file)
+2. **User config directory**: `~/.config/claude-extend/tools.json`
+3. **Home directory**: `~/.claude-extend/tools.json`
+
+### Configuration Format
+
+```json
+{
+  "tools": {
+    "tool-name": {
+      "name": "tool-name",
+      "description": "Tool description",
+      "prerequisite": "command-executable",
+      "error_message": "Error when prerequisite missing",
+      "install_command": ["array", "of", "command", "args"]
+    }
+  }
+}
+```
+
+### Key Implementation Details
+
+- **prerequisite**: Name of executable checked with `shutil.which()`. Special case: "npm" checks for either `npm` or `npx`
+- **install_command**: Array of command arguments. Supports `{project_dir}` placeholder replacement
+- External config loading is handled in `MCPToolRegistry._load_tools()` with fallback to hardcoded defaults
+- Configuration validation and loading functions in `utils.py`: `get_config_path()`, `load_external_tools_config()`

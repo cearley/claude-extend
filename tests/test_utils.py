@@ -1,5 +1,6 @@
 """Tests for the utils module."""
 
+import json
 import pytest
 import sys
 import os
@@ -162,3 +163,96 @@ class TestValidateInteractiveEnvironment:
         assert result is False
         captured = capsys.readouterr()
         assert 'interactive input' in captured.err
+
+
+class TestConfigPath:
+    """Test config path functionality."""
+
+    def test_get_config_path_environment_variable(self, tmp_path, monkeypatch):
+        """Test config path from environment variable."""
+        from claude_extend.utils import get_config_path
+        
+        config_file = tmp_path / "custom_tools.json"
+        config_file.write_text('{"tools": {}}')
+        
+        monkeypatch.setenv('CLAUDE_EXTEND_CONFIG', str(config_file))
+        
+        result = get_config_path()
+        assert result == config_file
+
+    def test_get_config_path_standard_locations(self, tmp_path, monkeypatch):
+        """Test config path from standard locations."""
+        from claude_extend.utils import get_config_path
+        
+        # Mock home directory
+        monkeypatch.setattr('pathlib.Path.home', lambda: tmp_path)
+        
+        # Create config in first standard location
+        config_dir = tmp_path / '.config' / 'claude-extend'
+        config_dir.mkdir(parents=True)
+        config_file = config_dir / 'tools.json'
+        config_file.write_text('{"tools": {}}')
+        
+        result = get_config_path()
+        assert result == config_file
+
+    def test_get_config_path_no_config_found(self, tmp_path, monkeypatch):
+        """Test when no config file exists."""
+        from claude_extend.utils import get_config_path
+        
+        # Mock home directory to empty location
+        monkeypatch.setattr('pathlib.Path.home', lambda: tmp_path)
+        monkeypatch.delenv('CLAUDE_EXTEND_CONFIG', raising=False)
+        
+        result = get_config_path()
+        assert result is None
+
+
+class TestLoadExternalConfig:
+    """Test external config loading functionality."""
+
+    def test_load_external_tools_config_valid(self, tmp_path):
+        """Test loading valid external config."""
+        from claude_extend.utils import load_external_tools_config
+        
+        config_data = {
+            "tools": {
+                "test-tool": {
+                    "name": "test-tool",
+                    "description": "Test Tool",
+                    "prerequisite": "python",
+                    "error_message": "Python not found",
+                    "install_command": ["echo", "test"]
+                }
+            }
+        }
+        
+        config_file = tmp_path / "tools.json"
+        config_file.write_text(json.dumps(config_data))
+        
+        result = load_external_tools_config(config_file)
+        assert "test-tool" in result
+        assert result["test-tool"]["name"] == "test-tool"
+        assert result["test-tool"]["description"] == "Test Tool"
+
+    def test_load_external_tools_config_empty(self, tmp_path):
+        """Test loading config with no tools."""
+        from claude_extend.utils import load_external_tools_config
+        
+        config_data = {"tools": {}}
+        config_file = tmp_path / "tools.json"
+        config_file.write_text(json.dumps(config_data))
+        
+        result = load_external_tools_config(config_file)
+        assert result == {}
+
+    def test_load_external_tools_config_missing_tools_key(self, tmp_path):
+        """Test loading config without tools key."""
+        from claude_extend.utils import load_external_tools_config
+        
+        config_data = {"other": "data"}
+        config_file = tmp_path / "tools.json"
+        config_file.write_text(json.dumps(config_data))
+        
+        result = load_external_tools_config(config_file)
+        assert result == {}

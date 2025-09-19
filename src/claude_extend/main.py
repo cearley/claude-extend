@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Claude eXtend (cx) - CLI tool for managing MCP server connections with Claude Code."""
 
-import sys
 import argparse
+import sys
+
 from . import __version__
 from .tools import MCPToolRegistry
 from .utils import print_message, validate_environment, validate_interactive_environment
@@ -38,7 +39,7 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
 
     if not args.tools:
         print_message('error', "No tools specified. Use --interactive or specify tool names.")
-        return
+        return None
 
     if not validate_environment():
         sys.exit(1)
@@ -60,6 +61,7 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
         else:
             print_message('error', f"✗ Failed to install {tool_name}")
         print()
+    return None
 
 
 def _display_tool_menu(tools: dict, tool_list: list) -> None:

@@ -1,9 +1,10 @@
 """Utility functions for Claude eXtend."""
 
 import os
-import sys
 import shutil
+import sys
 from pathlib import Path
+from typing import Dict, Optional
 
 
 class Colors:
@@ -63,3 +64,60 @@ def validate_interactive_environment() -> bool:
         return False
 
     return True
+
+
+def get_config_path() -> Optional[Path]:
+    """Get the path to the external tools configuration file.
+
+    Returns the first existing config file found, or None if no config exists.
+    Checks in order:
+    1. CLAUDE_EXTEND_CONFIG environment variable
+    2. ~/.config/claude-extend/tools.json
+    3. ~/.claude-extend/tools.json
+    """
+    
+    # Check environment variable first
+    env_config = os.environ.get('CLAUDE_EXTEND_CONFIG')
+    if env_config:
+        config_path = Path(env_config)
+        if config_path.exists():
+            return config_path
+    
+    # Check standard config locations
+    config_locations = [
+        Path.home() / '.config' / 'claude-extend' / 'tools.json',
+        Path.home() / '.claude-extend' / 'tools.json'
+    ]
+    
+    for config_path in config_locations:
+        if config_path.exists():
+            return config_path
+    
+    return None
+
+
+def load_external_tools_config(config_path: Path) -> Dict[str, Dict[str, any]]:
+    """Load tools configuration from external JSON file.
+    
+    Expected JSON format:
+    {
+        "tools": {
+            "tool-name": {
+                "name": "tool-name",
+                "description": "Tool description",
+                "prerequisite": "command-name",
+                "error_message": "Error message if prerequisite missing",
+                "install_command": ["list", "of", "command", "args"]
+            }
+        }
+    }
+    
+    Returns:
+        Dict of tool configurations (not MCPTool objects to avoid circular imports)
+    """
+    import json
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config_data = json.load(f)
+    
+    return config_data.get('tools', {})

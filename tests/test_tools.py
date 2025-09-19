@@ -1,5 +1,6 @@
 """Tests for the tools module."""
 
+import json
 import pytest
 from unittest.mock import patch, Mock
 import subprocess
@@ -162,3 +163,85 @@ class TestMCPToolRegistry:
 
         available = mock_registry.get_available_tools()
         assert available == ["another-tool"]
+
+class TestMCPToolRegistryExternalConfig:
+    """Test MCPToolRegistry with external configuration."""
+
+    def test_load_tools_with_external_config(self, tmp_path, monkeypatch):
+        """Test loading tools from external config file."""
+        from claude_extend.tools import MCPToolRegistry
+        
+        # Create external config
+        config_data = {
+            "tools": {
+                "custom-tool": {
+                    "name": "custom-tool",
+                    "description": "Custom Tool - A custom MCP tool",
+                    "prerequisite": "python",
+                    "error_message": "Python not found",
+                    "install_command": ["echo", "installing", "custom-tool"]
+                }
+            }
+        }
+        
+        config_file = tmp_path / "tools.json"
+        config_file.write_text(json.dumps(config_data))
+        
+        # Mock get_config_path to return our test config
+        def mock_get_config_path():
+            return config_file
+        
+        monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
+        
+        # Create registry
+        registry = MCPToolRegistry()
+        
+        # Should have our custom tool
+        assert "custom-tool" in registry.tools
+        assert registry.tools["custom-tool"].name == "custom-tool"
+        assert registry.tools["custom-tool"].description == "Custom Tool - A custom MCP tool"
+
+    def test_load_tools_external_config_failure_fallback(self, tmp_path, monkeypatch, capsys):
+        """Test fallback to defaults when external config fails."""
+        from claude_extend.tools import MCPToolRegistry
+        
+        # Create invalid config file
+        config_file = tmp_path / "tools.json"
+        config_file.write_text("invalid json{")
+        
+        # Mock get_config_path to return our test config
+        def mock_get_config_path():
+            return config_file
+        
+        monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
+        
+        # Create registry - should fall back to defaults
+        registry = MCPToolRegistry()
+        
+        # Should have default tools
+        assert "serena" in registry.tools
+        assert "basic-memory" in registry.tools
+        assert "gemini-cli" in registry.tools
+        
+        # Should show warning message
+        captured = capsys.readouterr()
+        assert "Failed to load external config" in captured.err
+
+    def test_load_tools_no_external_config(self, monkeypatch):
+        """Test loading with no external config (defaults only)."""
+        from claude_extend.tools import MCPToolRegistry
+        
+        # Mock get_config_path to return None
+        def mock_get_config_path():
+            return None
+        
+        monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
+        
+        # Create registry - should use defaults
+        registry = MCPToolRegistry()
+        
+        # Should have default tools
+        assert "serena" in registry.tools
+        assert "basic-memory" in registry.tools
+        assert "gemini-cli" in registry.tools
+        assert len(registry.tools) == 3

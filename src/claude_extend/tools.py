@@ -1,9 +1,10 @@
 """MCP Tool Registry and Management."""
 
 import os
-import subprocess
 import shutil
-from typing import Dict, List, Tuple, Optional
+import subprocess
+from typing import Dict, List, Optional
+
 from .utils import print_message
 
 
@@ -60,8 +61,35 @@ class MCPToolRegistry:
     def __init__(self):
         self.tools = self._load_tools()
 
-    def _load_tools(self) -> Dict[str, MCPTool]:
-        """Load the registry of available MCP tools."""
+    @staticmethod
+    def _load_tools() -> Dict[str, MCPTool]:
+        """Load tools from external config, falling back to hardcoded defaults."""
+        from .utils import get_config_path, load_external_tools_config, print_message
+        
+        # Try loading from external config first
+        config_path = get_config_path()
+        if config_path:
+            try:
+                external_tools = load_external_tools_config(config_path)
+                print_message('info', f"Loaded tools from config: {config_path}")
+                
+                # Convert config dicts to MCPTool objects
+                tools = {}
+                for tool_name, tool_config in external_tools.items():
+                    tools[tool_name] = MCPTool(
+                        name=tool_config['name'],
+                        description=tool_config['description'],
+                        prerequisite=tool_config['prerequisite'],
+                        error_message=tool_config['error_message'],
+                        install_command=tool_config['install_command']
+                    )
+                return tools
+                
+            except Exception as e:
+                print_message('warning', f"Failed to load external config: {e}")
+                print_message('info', "Falling back to default tool registry")
+        
+        # Default hardcoded registry
         return {
             'serena': MCPTool(
                 name='serena',
@@ -76,7 +104,7 @@ class MCPToolRegistry:
                 name='basic-memory',
                 description='Basic Memory - Enhanced memory capabilities for Claude',
                 prerequisite='basic-memory',
-                error_message='basic-memory not found. Please install it first. See: https://docs.basicmemory.com/integrations/claude-code/',
+                error_message='basic-memory not found. Please install it first. See: https://docs.basicmemory.com/getting-started/#installation',
                 install_command=['claude', 'mcp', 'add', 'basic-memory', 'basic-memory', 'mcp']
             ),
             'gemini-cli': MCPTool(

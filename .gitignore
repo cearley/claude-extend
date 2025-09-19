@@ -1,6 +1,9 @@
 # IDE
 .idea/
 
+# Serena (semantic coding assistant)
+.serena/
+
 # Python
 # Byte-compiled / optimized / DLL files
 __pycache__/
