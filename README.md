@@ -2,7 +2,7 @@
 
 A CLI tool for managing Model Context Protocol (MCP) server connections with Claude Code.
 
-Claude eXtend allows you to easily link, unlink, and manage MCP servers that extend Claude Code's capabilities. It comes with opinionated default MCP tool definitions and can dynamically install servers (e.g., via npx or uvx) or work with pre-installed servers. The default tool definitions can be overridden or extended via external configuration files.
+Claude eXtend allows you to easily add, remove, and manage MCP servers that extend Claude Code's capabilities. It comes with opinionated default MCP tool definitions and can dynamically install servers (e.g., via npx or uvx) or work with pre-installed servers. The default tool definitions can be overridden or extended via external configuration files.
 
 ## Quick Start
 
@@ -30,9 +30,9 @@ uv tool install .
 
 ```bash
 cx                 # Show help and available commands
-cx list           # List connected MCP servers
-cx link <server>  # Link an MCP server to Claude Code
-cx unlink <server> # Unlink an MCP server from Claude Code
+cx list           # List available MCP tools
+cx add <tool>     # Add an MCP tool to Claude Code
+cx remove <tool>  # Remove an MCP tool from Claude Code
 ```
 
 ## External Configuration
@@ -109,18 +109,18 @@ Now basic-memory will appear in your available tools:
 # List available tools (basic-memory should now appear)
 cx list
 
-# Link basic-memory to Claude Code
-cx link basic-memory
+# Add basic-memory to Claude Code
+cx add basic-memory
 ```
 
 **How it works:**
 
-- The `"prerequisite": "basic-memory"` field tells Claude eXtend to check if the `basic-memory` command is available in your system PATH before attempting to link it
+- The `"prerequisite": "basic-memory"` field tells Claude eXtend to check if the `basic-memory` command is available in your system PATH before attempting to add it
 - After running the installation script, `basic-memory` becomes a valid system command that can be executed from anywhere
 - Claude eXtend uses Python's `shutil.which()` to verify the prerequisite exists before proceeding
 - The `install_command` uses the Claude Code MCP configuration command documented in the [basic-memory Claude Code integration guide](https://docs.basicmemory.com/integrations/claude-code/#configure-claude-code)
 
-When you run `cx link basic-memory`, Claude eXtend will first check that the `basic-memory` command is available, then execute the install command to configure Claude Code with the basic-memory MCP server.
+When you run `cx add basic-memory`, Claude eXtend will first check that the `basic-memory` command is available, then execute the install command to configure Claude Code with the basic-memory MCP server.
 
 ## What are MCP Servers?
 

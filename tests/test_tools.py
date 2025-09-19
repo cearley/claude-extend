@@ -108,6 +108,40 @@ class TestMCPTool:
         expected_cmd = ["cmd", "--project", "/custom/path", "arg"]
         mock_run.assert_called_once_with(expected_cmd, check=True)
 
+    @patch('claude_extend.tools.MCPTool.is_installed')
+    @patch('subprocess.run')
+    def test_remove_success(self, mock_run, mock_is_installed, mock_tool):
+        """Test successful removal."""
+        mock_is_installed.return_value = True
+        mock_run.return_value.returncode = 0
+
+        result = mock_tool.remove()
+
+        assert result is True
+        mock_run.assert_called_once_with(['claude', 'mcp', 'remove', 'test-tool'], check=True)
+
+    @patch('claude_extend.tools.MCPTool.is_installed')
+    @patch('subprocess.run')
+    def test_remove_not_installed(self, mock_run, mock_is_installed, mock_tool):
+        """Test removing tool that's not installed."""
+        mock_is_installed.return_value = False
+
+        result = mock_tool.remove()
+
+        assert result is True
+        mock_run.assert_not_called()
+
+    @patch('claude_extend.tools.MCPTool.is_installed')
+    @patch('subprocess.run')
+    def test_remove_failure(self, mock_run, mock_is_installed, mock_tool):
+        """Test failed removal."""
+        mock_is_installed.return_value = True
+        mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
+
+        result = mock_tool.remove()
+
+        assert result is False
+
 
 class TestMCPToolRegistry:
     """Test cases for MCPToolRegistry class."""

@@ -5,7 +5,7 @@ import sys
 from unittest.mock import patch, MagicMock
 from io import StringIO
 
-from claude_extend.main import main, cmd_list, cmd_add
+from claude_extend.main import main, cmd_list, cmd_add, cmd_remove
 
 
 class TestCLIArguments:
@@ -154,6 +154,84 @@ class TestAddCommand:
         assert 'Python not found' in captured.err
         mock_tool.install.assert_not_called()
 
+class TestRemoveCommand:
+    """Test cmd_remove function."""
+
+    @patch('claude_extend.main.validate_environment')
+    def test_cmd_remove_no_tools_specified(self, mock_validate, capsys):
+        """Test remove command with no tools specified."""
+        mock_validate.return_value = True
+        args = MagicMock()
+        args.tools = []
+
+        mock_registry = MagicMock()
+
+        cmd_remove(args, mock_registry)
+        captured = capsys.readouterr()
+
+        assert 'No tools specified. Specify tool names to remove.' in captured.err
+
+    @patch('claude_extend.main.validate_environment')
+    def test_cmd_remove_unknown_tool(self, mock_validate, capsys):
+        """Test remove command with unknown tool."""
+        mock_validate.return_value = True
+        args = MagicMock()
+        args.tools = ['unknown-tool']
+
+        mock_registry = MagicMock()
+        mock_registry.get_tool.return_value = None
+        mock_registry.get_tool_names.return_value = ['test-tool', 'other-tool']
+
+        cmd_remove(args, mock_registry)
+        captured = capsys.readouterr()
+
+        assert 'Unknown tool: unknown-tool' in captured.err
+        assert 'Available tools: test-tool, other-tool' in captured.err
+
+    @patch('claude_extend.main.validate_environment')
+    def test_cmd_remove_valid_tool_success(self, mock_validate, capsys):
+        """Test successful tool removal."""
+        mock_validate.return_value = True
+        args = MagicMock()
+        args.tools = ['test-tool']
+
+        # Mock tool removal success
+        mock_tool = MagicMock()
+        mock_tool.remove.return_value = True
+        mock_tool.description = "Test Tool"
+
+        mock_registry = MagicMock()
+        mock_registry.get_tool.return_value = mock_tool
+
+        cmd_remove(args, mock_registry)
+        captured = capsys.readouterr()
+
+        assert 'Processing: Test Tool' in captured.err
+        assert '✓ test-tool removed successfully' in captured.err
+        mock_tool.remove.assert_called_once()
+
+    @patch('claude_extend.main.validate_environment')
+    def test_cmd_remove_tool_failure(self, mock_validate, capsys):
+        """Test failed tool removal."""
+        mock_validate.return_value = True
+        args = MagicMock()
+        args.tools = ['test-tool']
+
+        # Mock tool removal failure
+        mock_tool = MagicMock()
+        mock_tool.remove.return_value = False
+        mock_tool.description = "Test Tool"
+
+        mock_registry = MagicMock()
+        mock_registry.get_tool.return_value = mock_tool
+
+        cmd_remove(args, mock_registry)
+        captured = capsys.readouterr()
+
+        assert 'Processing: Test Tool' in captured.err
+        assert '✗ Failed to remove test-tool' in captured.err
+        mock_tool.remove.assert_called_once()
+
 
 class TestAddInteractiveCommand:
     """Test the interactive add command."""
@@ -236,3 +314,38 @@ class TestCLIIntegration:
 
         main()
         mock_input.assert_called_once()
+
+    @patch('claude_extend.main.MCPToolRegistry')
+    @patch('sys.argv', ['cx', 'remove', 'test-tool'])
+    @patch('claude_extend.main.validate_environment')
+    def test_remove_command_integration(self, mock_validate, mock_registry_class, capsys):
+        """Test remove command through main CLI."""
+        mock_validate.return_value = True
+        mock_registry = MagicMock()
+        mock_tool = MagicMock()
+        mock_tool.description = "Test Tool"
+        mock_tool.remove.return_value = True
+        mock_registry.get_tool.return_value = mock_tool
+        mock_registry_class.return_value = mock_registry
+
+        main()
+        captured = capsys.readouterr()
+
+        assert 'Processing: Test Tool' in captured.err
+        mock_tool.remove.assert_called_once()
+
+    @patch('claude_extend.main.MCPToolRegistry')
+    @patch('sys.argv', ['cx', 'remove', 'unknown-tool'])
+    @patch('claude_extend.main.validate_environment')
+    def test_remove_unknown_tool_integration(self, mock_validate, mock_registry_class, capsys):
+        """Test remove command with unknown tool through main CLI."""
+        mock_validate.return_value = True
+        mock_registry = MagicMock()
+        mock_registry.get_tool.return_value = None
+        mock_registry.get_tool_names.return_value = ['test-tool']
+        mock_registry_class.return_value = mock_registry
+
+        main()
+        captured = capsys.readouterr()
+
+        assert 'Unknown tool: unknown-tool' in captured.err

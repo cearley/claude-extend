@@ -63,6 +63,31 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
         print()
     return None
 
+def cmd_remove(args, registry: MCPToolRegistry) -> None:
+    """Remove MCP tools."""
+    if not args.tools:
+        print_message('error', "No tools specified. Specify tool names to remove.")
+        return None
+
+    if not validate_environment():
+        sys.exit(1)
+
+    for tool_name in args.tools:
+        tool = registry.get_tool(tool_name)
+        if not tool:
+            print_message('error', f"Unknown tool: {tool_name}")
+            print_message('info', f"Available tools: {', '.join(registry.get_tool_names())}")
+            continue
+
+        print_message('info', f"Processing: {tool.description}")
+
+        if tool.remove():
+            print_message('success', f"✓ {tool_name} removed successfully")
+        else:
+            print_message('error', f"✗ Failed to remove {tool_name}")
+        print()
+    return None
+
 
 def _display_tool_menu(tools: dict, tool_list: list) -> None:
     """Display the interactive tool selection menu."""
@@ -181,6 +206,10 @@ def main():
     add_parser.add_argument('--interactive', '-i', action='store_true',
                            help='Interactive tool selection')
 
+    # Remove command
+    remove_parser = subparsers.add_parser('remove', help='Remove MCP tools')
+    remove_parser.add_argument('tools', nargs='*', help='Tool names to remove')
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -192,6 +221,8 @@ def main():
         cmd_list(args, registry)
     elif args.command == 'add':
         cmd_add(args, registry)
+    elif args.command == 'remove':
+        cmd_remove(args, registry)
     else:
         # Show help if no command provided
         print("Claude eXtend (cx) - MCP Server Manager")

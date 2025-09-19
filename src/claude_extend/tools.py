@@ -54,6 +54,24 @@ class MCPTool:
             print_message('error', f"Failed to install {self.name}")
             return False
 
+    def remove(self) -> bool:
+        """Remove this MCP tool."""
+        if not self.is_installed():
+            print_message('info', f"{self.name} is not installed")
+            return True
+
+        print_message('info', f"Removing {self.description}...")
+
+        try:
+            # Use claude mcp remove command
+            command = ['claude', 'mcp', 'remove', self.name]
+            subprocess.run(command, check=True)
+            print_message('success', f"{self.name} removed")
+            return True
+        except subprocess.CalledProcessError:
+            print_message('error', f"Failed to remove {self.name}")
+            return False
+
 
 class MCPToolRegistry:
     """Registry of available MCP tools."""
