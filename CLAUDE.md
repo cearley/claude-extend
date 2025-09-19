@@ -71,6 +71,36 @@ uv tool install git+https://github.com/cearley/claude-extend
 git clone https://github.com/cearley/claude-extend.git
 cd claude-extend
 uv tool install .
+```
+
+## Testing
+
+**Run all tests:**
+```bash
+uv run pytest
+```
+
+**Run tests with coverage:**
+```bash
+uv run pytest --cov=claude_extend --cov-report=term-missing
+```
+
+**Run specific test file:**
+```bash
+uv run pytest tests/test_tools.py -v
+```
+
+**Install development dependencies:**
+```bash
+uv sync --extra dev
+```
+
+## Test Structure
+
+- `tests/test_tools.py` - Unit tests for MCP tool registry and management
+- `tests/test_utils.py` - Unit tests for utility functions and validation
+- `tests/test_cli.py` - Integration tests for CLI commands
+- `tests/conftest.py` - Shared test fixtures and configuration
 
 ## MCP Integration Notes
 

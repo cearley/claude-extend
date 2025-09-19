@@ -4,12 +4,19 @@ build-backend = "hatchling.build"
 
 [project]
 name = "claude-extend"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A CLI tool for managing MCP server connections with Claude Code"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    { name = "Craig" }
+    { name = "Craig Earley" }
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
 ]
 
 [project.urls]
@@ -22,6 +29,9 @@ cx = "claude_extend.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/claude_extend"]
+
+[tool.hatch.version]
+path = "src/claude_extend/__init__.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
