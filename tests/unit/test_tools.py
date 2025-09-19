@@ -148,7 +148,7 @@ class TestMCPTool:
 class TestMCPToolRegistry:
     """Test cases for MCPToolRegistry class."""
 
-    def test_init(self):
+    def test_init(self, mock_claude_mcp_calls):
         """Test registry initialization."""
         registry = MCPToolRegistry()
         assert isinstance(registry.tools, dict)
@@ -203,7 +203,7 @@ class TestMCPToolRegistry:
 class TestMCPToolRegistryExternalConfig:
     """Test MCPToolRegistry with external configuration."""
 
-    def test_load_tools_with_external_config(self, tmp_path, monkeypatch):
+    def test_load_tools_with_external_config(self, tmp_path, monkeypatch, mock_claude_mcp_calls):
         """Test loading tools from external config file."""
         from claude_extend.tools import MCPToolRegistry
         
@@ -237,7 +237,7 @@ class TestMCPToolRegistryExternalConfig:
         assert registry.tools["custom-tool"].name == "custom-tool"
         assert registry.tools["custom-tool"].description == "Custom Tool - A custom MCP tool"
 
-    def test_load_tools_external_config_failure_fallback(self, tmp_path, monkeypatch, capsys):
+    def test_load_tools_external_config_failure_fallback(self, tmp_path, monkeypatch, capsys, mock_claude_mcp_calls):
         """Test fallback to defaults when external config fails."""
         from claude_extend.tools import MCPToolRegistry
         
@@ -263,7 +263,7 @@ class TestMCPToolRegistryExternalConfig:
         captured = capsys.readouterr()
         assert "Failed to load external config" in captured.err
 
-    def test_load_tools_no_external_config(self, monkeypatch):
+    def test_load_tools_no_external_config(self, monkeypatch, mock_claude_mcp_calls):
         """Test loading with no external config (defaults only)."""
         from claude_extend.tools import MCPToolRegistry
         

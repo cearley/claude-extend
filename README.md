@@ -168,6 +168,16 @@ Claude eXtend helps you manage which of these installed servers are active in yo
 
 See [CLAUDE.md](CLAUDE.md) for development guidance.
 
+## Development Notes
+
+This project utilized AI assistance, specifically Claude, for certain aspects of its development, including:
+
+- Generating initial code structures and CLI architecture
+- Implementing comprehensive test suites with proper mocking strategies
+- Drafting and refining documentation sections
+- Assisting with debugging, performance optimization, and problem-solving
+- Code review and best practices recommendations
+
 ## License
 
 MIT

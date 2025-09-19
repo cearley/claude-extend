@@ -18,7 +18,7 @@ def mock_tool():
 
 
 @pytest.fixture
-def mock_registry():
+def mock_registry(mock_claude_mcp_calls):
     """Create a mock registry with test tools."""
     registry = MCPToolRegistry()
     # Replace with test tools
@@ -42,18 +42,20 @@ def mock_registry():
 
 
 @pytest.fixture
-def mock_subprocess():
-    """Mock subprocess calls."""
-    with patch('subprocess.run') as mock:
-        mock.return_value.stdout = ""
-        mock.return_value.returncode = 0
-        yield mock
-
-
-@pytest.fixture
 def mock_shutil_which():
     """Mock shutil.which to control prerequisite checking."""
     with patch('shutil.which') as mock:
         # By default, assume all prerequisites are available
         mock.return_value = "/usr/bin/mock-command"
         yield mock
+
+
+@pytest.fixture
+def mock_claude_mcp_calls():
+    """Mock all claude mcp subprocess calls to avoid requiring Claude CLI in tests."""
+    with patch('subprocess.run') as mock_run:
+        # Mock successful claude mcp list with no tools installed
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        yield mock_run

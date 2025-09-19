@@ -106,22 +106,44 @@ uv tool install .
 uv run pytest
 ```
 
+**Run only unit tests:**
+```bash
+uv run pytest tests/unit/
+```
+
+**Run only integration tests:**
+```bash
+uv run pytest tests/integration/
+```
+
 **Run tests with coverage:**
 ```bash
 uv run pytest --cov=claude_extend --cov-report=term-missing
 ```
 
-**Run specific test file:**
-```bash
-uv run pytest tests/test_tools.py -v
-```
-
 ## Test Structure
 
-- `tests/test_tools.py` - Unit tests for MCP tool registry and management (install, remove, prerequisites, caching)
-- `tests/test_utils.py` - Unit tests for utility functions and validation
-- `tests/test_cli.py` - Integration tests for CLI commands (list, add, remove, interactive mode)
-- `tests/conftest.py` - Shared test fixtures and configuration
+Tests are organized into unit and integration categories:
+
+**Unit tests** (`tests/unit/`):
+- `test_tools.py` - Unit tests for MCP tool registry and management classes
+- `test_utils.py` - Unit tests for utility functions and validation
+- `test_cli_commands.py` - Unit tests for individual CLI command functions
+
+**Integration tests** (`tests/integration/`):
+- `test_cli_integration.py` - End-to-end tests through the main() entry point
+
+**Shared test configuration:**
+- `tests/conftest.py` - Shared test fixtures including `claude mcp` subprocess mocking
+
+### Test Mocking
+
+Unit tests mock all external dependencies including:
+- `subprocess.run` calls to `claude mcp` commands (via `mock_claude_mcp_calls` fixture)
+- `shutil.which` for prerequisite checking (via `mock_shutil_which` fixture)
+- File system operations for external configuration testing
+
+This ensures unit tests can run in CI environments without requiring Claude CLI to be installed.
 
 ### Test Coverage
 
