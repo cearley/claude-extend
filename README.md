@@ -1,7 +1,7 @@
 # Claude eXtend (cx)
 
 [![CI](https://github.com/cearley/claude-extend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cearley/claude-extend/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/cearley/claude-extend/branch/main/graph/badge.svg)](https://codecov.io/gh/cearley/claude-extend)
+[![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)](https://github.com/cearley/claude-extend/actions/workflows/ci.yml)
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Release](https://img.shields.io/github/release/cearley/claude-extend.svg)](https://github.com/cearley/claude-extend/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
