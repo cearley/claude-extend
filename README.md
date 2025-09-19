@@ -11,17 +11,6 @@ A CLI tool for managing Model Context Protocol (MCP) server connections with Cla
 
 Claude eXtend allows you to easily add, remove, and manage MCP servers that extend Claude Code's capabilities. It comes with opinionated default MCP tool definitions and can dynamically install servers (e.g., via npx or uvx) or work with pre-installed servers. The default tool definitions can be overridden or extended via external configuration files.
 
-## Why use cx instead of `claude mcp` directly?
-
-The main benefit of `cx` is **organization**: your selected MCP tools are codified in a configuration file, making them easy to add, remove, and share:
-
-- **📝 Codified setup**: Your MCP tools are defined in a JSON config with exact installation commands
-- **🔄 Reproducible**: Share your `tools.json` with teammates or across machines
-- **🎯 Curated collection**: Maintain a focused set of tools relevant to your workflow
-- **⚡ Quick access**: Add/remove tools by name without remembering complex installation syntax
-
-While `claude mcp add` works fine for one-off installations, `cx` helps when you want to maintain and organize a consistent set of MCP tools over time.
-
 ## Quick Start
 
 Run `cx` instantly with `uvx` directly from GitHub (no installation required):
@@ -43,6 +32,32 @@ git clone https://github.com/cearley/claude-extend.git
 cd claude-extend
 uv tool install .
 ```
+
+## Table of Contents
+
+- [Why use cx instead of `claude mcp` directly?](#why-use-cx-instead-of-claude-mcp-directly)
+- [Usage](#usage)
+  - [Interactive Mode](#interactive-mode)
+- [External Configuration](#external-configuration)
+  - [Configuration File Locations](#configuration-file-locations)
+  - [Configuration File Format](#configuration-file-format)
+  - [Example: Adding basic-memory](#example-adding-basic-memory)
+- [What are MCP Servers?](#what-are-mcp-servers)
+- [Security Considerations](#security-considerations)
+- [Requirements](#requirements)
+- [Development](#development)
+- [License](#license)
+
+## Why use cx instead of `claude mcp` directly?
+
+The main benefit of `cx` is **organization**: your selected MCP tools are codified in a configuration file, making them easy to add, remove, and share:
+
+- **📝 Codified setup**: Your MCP tools are defined in a JSON config with exact installation commands
+- **🔄 Reproducible**: Share your `tools.json` with teammates or across machines
+- **🎯 Curated collection**: Maintain a focused set of tools relevant to your workflow
+- **⚡ Quick access**: Add/remove tools by name without remembering complex installation syntax
+
+While `claude mcp add` works fine for one-off installations, `cx` helps when you want to maintain and organize a consistent set of MCP tools over time.
 
 ## Usage
 
