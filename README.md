@@ -16,13 +16,22 @@ Claude eXtend allows you to easily add, remove, and manage MCP servers that exte
 Run `cx` instantly with `uvx` directly from GitHub (no installation required):
 
 ```bash
-uvx --from git+https://github.com/cearley/claude-extend cx
+# List available MCP tools
+uvx --from git+https://github.com/cearley/claude-extend cx list
+
+# Add basic-memory MCP server to Claude Code
+uvx --from git+https://github.com/cearley/claude-extend cx add basic-memory
+
+# Interactive mode for guided tool selection
+uvx --from git+https://github.com/cearley/claude-extend cx add --interactive
 ```
 
 Or install locally from GitHub:
 
 ```bash
 uv tool install git+https://github.com/cearley/claude-extend
+cx list
+cx add basic-memory
 ```
 
 Or install from source:
@@ -31,6 +40,7 @@ Or install from source:
 git clone https://github.com/cearley/claude-extend.git
 cd claude-extend
 uv tool install .
+cx add --interactive
 ```
 
 ## Table of Contents
