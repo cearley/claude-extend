@@ -30,6 +30,8 @@ def cmd_list(_args, registry: MCPToolRegistry) -> None:
         print()
 
     print(f"Total: {len(tools)} tools ({len(installed)} installed)")
+    print()
+    print("💡 Tip: Use 'cx add --interactive' for guided tool selection and installation")
 
 
 def cmd_add(args, registry: MCPToolRegistry) -> None:
@@ -201,10 +203,10 @@ def main():
     subparsers.add_parser('list', help='List available MCP tools')
 
     # Add command
-    add_parser = subparsers.add_parser('add', help='Add MCP tools')
+    add_parser = subparsers.add_parser('add', help='Add MCP tools (use --interactive for guided selection)')
     add_parser.add_argument('tools', nargs='*', help='Tool names to install')
     add_parser.add_argument('--interactive', '-i', action='store_true',
-                           help='Interactive tool selection')
+                           help='Interactive tool selection menu')
 
     # Remove command
     remove_parser = subparsers.add_parser('remove', help='Remove MCP tools')

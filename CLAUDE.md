@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Claude eXtend (cx)** - A Python command-line tool for managing which Model Context Protocol (MCP) servers are connected to Claude Code. This tool allows users to link, unlink, and list MCP servers that are already installed on their system but need to be configured with Claude Code.
+**Claude eXtend (cx)** - A Python command-line tool for managing Model Context Protocol (MCP) servers that extend Claude Code's capabilities. The tool provides organized access to MCP tools through configuration files, with commands to add, remove, and list MCP servers. It can dynamically install servers (e.g., via npx or uvx) or work with pre-installed servers.
 
 ## Development Environment
 
@@ -19,7 +19,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── src/
 │   └── claude_extend/
 │       ├── __init__.py     # Package initialization
-│       └── main.py         # Main CLI entry point
+│       ├── main.py         # Main CLI entry point and commands
+│       ├── tools.py        # MCP tool registry and management
+│       └── utils.py        # Utility functions and validation
+├── tests/                  # Test suite
+│   ├── test_cli.py        # CLI command integration tests
+│   ├── test_tools.py      # Tool registry and management tests
+│   ├── test_utils.py      # Utility function tests
+│   └── conftest.py        # Test fixtures and configuration
 ├── pyproject.toml          # Project configuration and dependencies
 ├── README.md              # Project documentation
 ├── CLAUDE.md              # This file
@@ -30,11 +37,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture
 
 This tool manages MCP server connections for Claude Code by:
-- Linking already-installed MCP servers to Claude Code configuration
-- Unlinking MCP servers from Claude Code configuration
-- Listing currently connected MCP servers
-- Managing Claude Code's MCP configuration file updates
-- Assumes MCP servers are already installed on the system
+- Adding MCP servers to Claude Code configuration (via `claude mcp add`)
+- Removing MCP servers from Claude Code configuration (via `claude mcp remove`)
+- Listing available and installed MCP tools with status
+- Managing external configuration files for custom tool definitions
+- Supporting both dynamic installation (npx/uvx) and pre-installed servers
+- Providing interactive mode for guided tool selection
+- Caching `claude mcp list` output for performance
+
+### Core Components
+
+- **MCPTool**: Represents individual tools with prerequisites, descriptions, and install commands
+- **MCPToolRegistry**: Manages the collection of available tools and handles external config loading
+- **CLI Commands**: `list`, `add`, `add --interactive`, `remove`
+- **External Config**: JSON-based tool definitions for extensibility
 
 ## Development Commands
 
@@ -102,10 +118,19 @@ uv run pytest tests/test_tools.py -v
 
 ## Test Structure
 
-- `tests/test_tools.py` - Unit tests for MCP tool registry and management
+- `tests/test_tools.py` - Unit tests for MCP tool registry and management (install, remove, prerequisites, caching)
 - `tests/test_utils.py` - Unit tests for utility functions and validation
-- `tests/test_cli.py` - Integration tests for CLI commands
+- `tests/test_cli.py` - Integration tests for CLI commands (list, add, remove, interactive mode)
 - `tests/conftest.py` - Shared test fixtures and configuration
+
+### Test Coverage
+
+The test suite covers:
+- **MCPTool class**: Installation, removal, prerequisite checking, with registry caching
+- **MCPToolRegistry class**: Tool discovery, external config loading, installation status caching
+- **CLI commands**: All commands including interactive mode, error handling, argument parsing
+- **External configuration**: Loading, validation, fallback to defaults
+- **Caching optimization**: Ensures `claude mcp list` is called only once per command execution
 
 ## MCP Integration Notes
 

@@ -4,6 +4,17 @@ A CLI tool for managing Model Context Protocol (MCP) server connections with Cla
 
 Claude eXtend allows you to easily add, remove, and manage MCP servers that extend Claude Code's capabilities. It comes with opinionated default MCP tool definitions and can dynamically install servers (e.g., via npx or uvx) or work with pre-installed servers. The default tool definitions can be overridden or extended via external configuration files.
 
+## Why use cx instead of `claude mcp` directly?
+
+The main benefit of `cx` is **organization**: your selected MCP tools are codified in a configuration file, making them easy to add, remove, and share:
+
+- **📝 Codified setup**: Your MCP tools are defined in a JSON config with exact installation commands
+- **🔄 Reproducible**: Share your `tools.json` with teammates or across machines
+- **🎯 Curated collection**: Maintain a focused set of tools relevant to your workflow
+- **⚡ Quick access**: Add/remove tools by name without remembering complex installation syntax
+
+While `claude mcp add` works fine for one-off installations, `cx` helps when you want to maintain and organize a consistent set of MCP tools over time.
+
 ## Quick Start
 
 Run `cx` instantly with `uvx` directly from GitHub (no installation required):
@@ -29,11 +40,26 @@ uv tool install .
 ## Usage
 
 ```bash
-cx                 # Show help and available commands
-cx list           # List available MCP tools
-cx add <tool>     # Add an MCP tool to Claude Code
-cx remove <tool>  # Remove an MCP tool from Claude Code
+cx                    # Show help and available commands
+cx list              # List available MCP tools
+cx add <tool>        # Add an MCP tool to Claude Code
+cx add --interactive # Interactive tool selection menu
+cx remove <tool>     # Remove an MCP tool from Claude Code
 ```
+
+### Interactive Mode
+
+For a guided experience, use interactive mode to select and install multiple tools:
+
+```bash
+cx add --interactive
+```
+
+Interactive mode provides:
+- 📋 List of all available tools with installation status
+- 🎯 Multi-select tool installation
+- ✅ Prerequisites checking before installation
+- 📦 Batch installation of selected tools
 
 ## External Configuration
 
