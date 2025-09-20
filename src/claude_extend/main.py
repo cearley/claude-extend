@@ -31,7 +31,7 @@ def cmd_list(_args, registry: MCPToolRegistry) -> None:
 
     print(f"Total: {len(tools)} tools ({len(installed)} installed)")
     print()
-    print("💡 Tip: Use 'cx add --interactive' for guided tool selection and installation")
+    print("💡 Tip: Use 'cx add --interactive' or 'cx remove --interactive' for guided tool management")
 
 
 def cmd_add(args, registry: MCPToolRegistry) -> None:
@@ -66,8 +66,11 @@ def cmd_add(args, registry: MCPToolRegistry) -> None:
 
 def cmd_remove(args, registry: MCPToolRegistry) -> None:
     """Remove MCP tools."""
+    if args.interactive:
+        return cmd_remove_interactive(args, registry)
+
     if not args.tools:
-        print_message('error', "No tools specified. Specify tool names to remove.")
+        print_message('error', "No tools specified. Use --interactive or specify tool names to remove.")
         return
 
     if not validate_environment():
@@ -154,6 +157,70 @@ def _install_selected_tools(selected_tools: list, tools: dict, registry: MCPTool
     print_message('success', "MCP tool installation complete!")
 
 
+def _get_user_tool_removal_selection(tools: dict, registry: MCPToolRegistry) -> list:
+    """Get tool removal selection from user through interactive checkbox interface."""
+    import questionary
+
+    # Create choices for ALL tools (not just installed ones)
+    choices = []
+    for name, tool in tools.items():
+        description = f"{name} - {tool.description}"
+
+        # Add status indicators
+        if not tool.is_installed(registry=registry):
+            description += " (not installed)"
+        elif not tool.check_prerequisites():
+            description += " ⚠️  (prerequisites missing)"
+
+        choices.append(questionary.Choice(title=description, value=name))
+
+    # Show interactive checkbox interface
+    try:
+        selected = questionary.checkbox(
+            "Select MCP tools to remove:",
+            choices=choices,
+            instruction="(Use arrow keys to navigate, space to select, enter to confirm, ctrl+c to cancel)"
+        ).ask()
+
+        # questionary returns None if user cancels/quits (Ctrl+C or ESC)
+        if selected is None:
+            print_message('info', "Removal cancelled.")
+            return []
+
+        # Filter out not installed tools from the selection
+        filtered_selected = []
+        for tool_name in selected:
+            tool = tools[tool_name]
+            if not tool.is_installed(registry=registry):
+                print_message('info', f"{tool_name} is not installed, skipping.")
+            else:
+                filtered_selected.append(tool_name)
+
+        return filtered_selected
+
+    except KeyboardInterrupt:
+        print_message('info', "Removal cancelled.")
+        return []
+
+
+def _remove_selected_tools(selected_tools: list, tools: dict, registry: MCPToolRegistry) -> None:
+    """Remove the selected tools."""
+    print_message('info', f"Removing {len(selected_tools)} MCP tool(s)...")
+    print()
+
+    for tool_name in selected_tools:
+        tool = tools[tool_name]
+        print_message('info', f"Processing: {tool.description}")
+
+        if tool.remove(registry=registry):
+            print_message('success', f"✓ {tool_name} removed successfully")
+        else:
+            print_message('error', f"✗ Failed to remove {tool_name}")
+        print()
+
+    print_message('success', "MCP tool removal complete!")
+
+
 def cmd_add_interactive(_args, registry: MCPToolRegistry) -> None:
     """Interactive tool selection and installation."""
     if not validate_interactive_environment():
@@ -171,6 +238,24 @@ def cmd_add_interactive(_args, registry: MCPToolRegistry) -> None:
         return
 
     _install_selected_tools(selected_tools, tools, registry)
+
+
+def cmd_remove_interactive(_args, registry: MCPToolRegistry) -> None:
+    """Interactive tool selection and removal."""
+    if not validate_interactive_environment():
+        sys.exit(1)
+
+    tools = registry.list_tools()
+
+    if not tools:
+        print_message('info', "No tools available in registry.")
+        return
+
+    selected_tools = _get_user_tool_removal_selection(tools, registry)
+    if not selected_tools:
+        return
+
+    _remove_selected_tools(selected_tools, tools, registry)
 
 
 def main():
@@ -193,8 +278,10 @@ def main():
                             help='Interactive tool selection menu')
 
     # Remove command
-    remove_parser = subparsers.add_parser('remove', help='Remove MCP tools')
+    remove_parser = subparsers.add_parser('remove', help='Remove MCP tools (use --interactive for guided selection)')
     remove_parser.add_argument('tools', nargs='*', help='Tool names to remove')
+    remove_parser.add_argument('--interactive', '-i', action='store_true',
+                              help='Interactive tool removal menu')
 
     # Parse arguments
     args = parser.parse_args()

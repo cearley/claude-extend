@@ -1,9 +1,8 @@
 """Tests for the tools module."""
 
 import json
-import pytest
-from unittest.mock import patch, Mock, MagicMock
 import subprocess
+from unittest.mock import patch, MagicMock
 
 from claude_extend.tools import MCPTool, MCPToolRegistry
 
@@ -49,7 +48,7 @@ class TestMCPTool:
         """Test is_installed when tool is installed."""
         mock_registry = MagicMock()
         mock_registry.is_tool_installed.return_value = True
-        
+
         assert mock_tool.is_installed(mock_registry) is True
         mock_registry.is_tool_installed.assert_called_once_with("test-tool")
 
@@ -57,7 +56,7 @@ class TestMCPTool:
         """Test is_installed when tool is not installed."""
         mock_registry = MagicMock()
         mock_registry.is_tool_installed.return_value = False
-        
+
         assert mock_tool.is_installed(mock_registry) is False
         mock_registry.is_tool_installed.assert_called_once_with("test-tool")
 
@@ -65,7 +64,7 @@ class TestMCPTool:
         """Test is_installed when subprocess error occurs."""
         mock_registry = MagicMock()
         mock_registry.is_tool_installed.return_value = False
-        
+
         assert mock_tool.is_installed(mock_registry) is False
         mock_registry.is_tool_installed.assert_called_once_with("test-tool")
 
@@ -102,15 +101,25 @@ class TestMCPTool:
         assert result is False
 
     @patch('subprocess.run')
-    def test_install_with_project_dir_placeholder(self, mock_run, mock_tool):
+    def test_install_with_project_dir_placeholder(self, mock_run):
         """Test installation with project directory placeholder replacement."""
+        # Create a tool with project_dir placeholder in install command
+        tool_with_placeholder = MCPTool(
+            name="test-tool",
+            description="Test Tool with placeholder",
+            prerequisite="python",
+            error_message="Python not found",
+            install_command=["echo", "installing", "in", "{project_dir}"]
+        )
+
         mock_registry = MagicMock()
         mock_registry.is_tool_installed.return_value = False
 
-        result = mock_tool.install(mock_registry, "/custom/project")
+        result = tool_with_placeholder.install(mock_registry, "/custom/project")
 
         assert result is True
-        mock_run.assert_called_once_with(["echo", "installing", "test-tool"], check=True)
+        # Verify the placeholder was replaced with the actual project directory
+        mock_run.assert_called_once_with(["echo", "installing", "in", "/custom/project"], check=True)
 
     @patch('subprocess.run')
     def test_remove_success(self, mock_run, mock_tool):
@@ -200,13 +209,14 @@ class TestMCPToolRegistry:
         available = mock_registry.get_available_tools()
         assert available == ["another-tool"]
 
+
 class TestMCPToolRegistryExternalConfig:
     """Test MCPToolRegistry with external configuration."""
 
     def test_load_tools_with_external_config(self, tmp_path, monkeypatch, mock_claude_mcp_calls):
         """Test loading tools from external config file."""
         from claude_extend.tools import MCPToolRegistry
-        
+
         # Create external config
         config_data = {
             "tools": {
@@ -219,19 +229,19 @@ class TestMCPToolRegistryExternalConfig:
                 }
             }
         }
-        
+
         config_file = tmp_path / "tools.json"
         config_file.write_text(json.dumps(config_data))
-        
+
         # Mock get_config_path to return our test config
         def mock_get_config_path():
             return config_file
-        
+
         monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
-        
+
         # Create registry
         registry = MCPToolRegistry()
-        
+
         # Should have our custom tool
         assert "custom-tool" in registry.tools
         assert registry.tools["custom-tool"].name == "custom-tool"
@@ -240,25 +250,25 @@ class TestMCPToolRegistryExternalConfig:
     def test_load_tools_external_config_failure_fallback(self, tmp_path, monkeypatch, capsys, mock_claude_mcp_calls):
         """Test fallback to defaults when external config fails."""
         from claude_extend.tools import MCPToolRegistry
-        
+
         # Create invalid config file
         config_file = tmp_path / "tools.json"
         config_file.write_text("invalid json{")
-        
+
         # Mock get_config_path to return our test config
         def mock_get_config_path():
             return config_file
-        
+
         monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
-        
+
         # Create registry - should fall back to defaults
         registry = MCPToolRegistry()
-        
+
         # Should have default tools
         assert "serena" in registry.tools
         assert "basic-memory" in registry.tools
         assert "gemini-cli" in registry.tools
-        
+
         # Should show warning message
         captured = capsys.readouterr()
         assert "Failed to load or parse external config" in captured.err
@@ -266,16 +276,16 @@ class TestMCPToolRegistryExternalConfig:
     def test_load_tools_no_external_config(self, monkeypatch, mock_claude_mcp_calls):
         """Test loading with no external config (defaults only)."""
         from claude_extend.tools import MCPToolRegistry
-        
+
         # Mock get_config_path to return None
         def mock_get_config_path():
             return None
-        
+
         monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
-        
+
         # Create registry - should use defaults
         registry = MCPToolRegistry()
-        
+
         # Should have default tools
         assert "serena" in registry.tools
         assert "basic-memory" in registry.tools

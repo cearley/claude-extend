@@ -1,13 +1,9 @@
 """Tests for the utils module."""
 
 import json
-import pytest
-import sys
-import os
-from unittest.mock import patch, mock_open
-from pathlib import Path
-from io import StringIO
+from unittest.mock import patch
 
+import pytest
 from claude_extend.utils import (
     Colors, print_message, validate_environment,
     validate_interactive_environment
@@ -36,42 +32,23 @@ class TestColors:
 class TestPrintMessage:
     """Test cases for print_message function."""
 
-    def test_print_message_info(self, capsys):
-        """Test printing info messages."""
-        print_message('info', 'Test message')
+    @pytest.mark.parametrize("level,expected_icon,expected_color", [
+        ('info', 'ℹ️', Colors.BLUE),
+        ('success', '✅', Colors.GREEN),
+        ('warning', '⚠️', Colors.YELLOW),
+        ('error', '❌', Colors.RED),
+    ])
+    def test_print_message_levels(self, level, expected_icon, expected_color, capsys):
+        """Test printing messages for different levels."""
+        message = f"Test {level} message"
+        print_message(level, message)
         captured = capsys.readouterr()
 
-        assert 'Test message' in captured.err
-        assert 'ℹ️' in captured.err
-        assert Colors.BLUE in captured.err
-        assert Colors.NC in captured.err
-
-    def test_print_message_success(self, capsys):
-        """Test printing success messages."""
-        print_message('success', 'Success message')
-        captured = capsys.readouterr()
-
-        assert 'Success message' in captured.err
-        assert '✅' in captured.err
-        assert Colors.GREEN in captured.err
-
-    def test_print_message_warning(self, capsys):
-        """Test printing warning messages."""
-        print_message('warning', 'Warning message')
-        captured = capsys.readouterr()
-
-        assert 'Warning message' in captured.err
-        assert '⚠️' in captured.err
-        assert Colors.YELLOW in captured.err
-
-    def test_print_message_error(self, capsys):
-        """Test printing error messages."""
-        print_message('error', 'Error message')
-        captured = capsys.readouterr()
-
-        assert 'Error message' in captured.err
-        assert '❌' in captured.err
-        assert Colors.RED in captured.err
+        assert message in captured.err
+        assert expected_icon in captured.err
+        assert expected_color in captured.err
+        if level == 'info':  # Only info includes NC (reset color)
+            assert Colors.NC in captured.err
 
     def test_print_message_unknown_level(self, capsys):
         """Test printing with unknown level defaults to info."""
@@ -173,39 +150,39 @@ class TestConfigPath:
     def test_get_config_path_environment_variable(self, tmp_path, monkeypatch):
         """Test config path from environment variable."""
         from claude_extend.utils import get_config_path
-        
+
         config_file = tmp_path / "custom_tools.json"
         config_file.write_text('{"tools": {}}')
-        
+
         monkeypatch.setenv('CLAUDE_EXTEND_CONFIG', str(config_file))
-        
+
         result = get_config_path()
         assert result == config_file
 
     def test_get_config_path_standard_locations(self, tmp_path, monkeypatch):
         """Test config path from standard locations."""
         from claude_extend.utils import get_config_path
-        
+
         # Mock home directory
         monkeypatch.setattr('pathlib.Path.home', lambda: tmp_path)
-        
+
         # Create config in first standard location
         config_dir = tmp_path / '.config' / 'claude-extend'
         config_dir.mkdir(parents=True)
         config_file = config_dir / 'tools.json'
         config_file.write_text('{"tools": {}}')
-        
+
         result = get_config_path()
         assert result == config_file
 
     def test_get_config_path_no_config_found(self, tmp_path, monkeypatch):
         """Test when no config file exists."""
         from claude_extend.utils import get_config_path
-        
+
         # Mock home directory to empty location
         monkeypatch.setattr('pathlib.Path.home', lambda: tmp_path)
         monkeypatch.delenv('CLAUDE_EXTEND_CONFIG', raising=False)
-        
+
         result = get_config_path()
         assert result is None
 
@@ -216,7 +193,7 @@ class TestLoadExternalConfig:
     def test_load_external_tools_config_valid(self, tmp_path):
         """Test loading valid external config."""
         from claude_extend.utils import load_external_tools_config
-        
+
         config_data = {
             "tools": {
                 "test-tool": {
@@ -228,10 +205,10 @@ class TestLoadExternalConfig:
                 }
             }
         }
-        
+
         config_file = tmp_path / "tools.json"
         config_file.write_text(json.dumps(config_data))
-        
+
         result = load_external_tools_config(config_file)
         assert "test-tool" in result
         assert result["test-tool"]["name"] == "test-tool"
@@ -240,21 +217,21 @@ class TestLoadExternalConfig:
     def test_load_external_tools_config_empty(self, tmp_path):
         """Test loading config with no tools."""
         from claude_extend.utils import load_external_tools_config
-        
+
         config_data = {"tools": {}}
         config_file = tmp_path / "tools.json"
         config_file.write_text(json.dumps(config_data))
-        
+
         result = load_external_tools_config(config_file)
         assert result == {}
 
     def test_load_external_tools_config_missing_tools_key(self, tmp_path):
         """Test loading config without tools key."""
         from claude_extend.utils import load_external_tools_config
-        
+
         config_data = {"other": "data"}
         config_file = tmp_path / "tools.json"
         config_file.write_text(json.dumps(config_data))
-        
+
         result = load_external_tools_config(config_file)
         assert result == {}
