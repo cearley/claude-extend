@@ -42,15 +42,15 @@ def validate_environment() -> bool:
     project_files = ['package.json', 'pyproject.toml', 'Cargo.toml', '.git', 'go.mod']
 
     if not any(Path(f).exists() for f in project_files):
-        print_message('error', "This command must be run from within a project directory")
+        print_message('warning', "No project directory detected")
         print_message('info', "Look for files like package.json, pyproject.toml, Cargo.toml, .git, or go.mod")
-        return False
+    else:
+        print_message('success', f"Project directory detected: {os.getcwd()}")
 
     if not shutil.which('claude'):
         print_message('error', "Claude CLI not found. Please install it first.")
         return False
 
-    print_message('success', f"Project directory detected: {os.getcwd()}")
     return True
 
 

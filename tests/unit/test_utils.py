@@ -102,16 +102,18 @@ class TestValidateEnvironment:
         assert 'Project directory detected' in captured.err
 
     @patch('pathlib.Path.exists')
-    def test_validate_environment_no_project_files(self, mock_exists, capsys):
-        """Test validation failure when no project files found."""
+    @patch('shutil.which')
+    def test_validate_environment_no_project_files(self, mock_which, mock_exists, capsys):
+        """Test validation warning when no project files found."""
         mock_exists.return_value = False
+        mock_which.return_value = '/usr/bin/claude'
 
         result = validate_environment()
 
-        assert result is False
+        assert result is True
         captured = capsys.readouterr()
-        assert '❌' in captured.err
-        assert 'project directory' in captured.err
+        assert '⚠️' in captured.err
+        assert 'No project directory detected' in captured.err
 
     @patch('pathlib.Path.exists')
     @patch('shutil.which')

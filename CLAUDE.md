@@ -23,15 +23,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │       ├── tools.py        # MCP tool registry and management
 │       └── utils.py        # Utility functions and validation
 ├── tests/                  # Test suite
-│   ├── test_cli.py        # CLI command integration tests
-│   ├── test_tools.py      # Tool registry and management tests
-│   ├── test_utils.py      # Utility function tests
+│   ├── unit/              # Unit tests
+│   │   ├── test_cli_commands.py  # CLI command unit tests
+│   │   ├── test_tools.py         # Tool registry unit tests
+│   │   └── test_utils.py         # Utility function unit tests
+│   ├── integration/       # Integration tests
+│   │   └── test_cli_integration.py  # End-to-end CLI tests
 │   └── conftest.py        # Test fixtures and configuration
-├── pyproject.toml          # Project configuration and dependencies
+├── .github/               # GitHub workflows and configuration
+│   └── workflows/
+│       └── ci.yml         # CI/CD pipeline
+├── pyproject.toml         # Project configuration and dependencies
+├── tools.json.example     # Example external configuration file
 ├── README.md              # Project documentation
 ├── CLAUDE.md              # This file
-├── .idea/                 # PyCharm IDE configuration files
-└── .gitignore             # Git ignore rules for Python/JetBrains
+└── .gitignore             # Git ignore rules
 ```
 
 ## Architecture

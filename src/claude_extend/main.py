@@ -24,7 +24,7 @@ def cmd_list(_args, registry: MCPToolRegistry) -> None:
 
     for name, tool in tools.items():
         status = "✅ INSTALLED" if name in installed else "⭕ AVAILABLE"
-        print(f"{status}  {tool.description}")
+        print(f"{status}  {name} - {tool.description}")
         if not tool.check_prerequisites():
             print_message('warning', f"   Prerequisites missing: {tool.error_message}")
         print()
@@ -88,64 +88,50 @@ def cmd_remove(args, registry: MCPToolRegistry) -> None:
             print_message('error', f"✗ Failed to remove {tool_name}")
         print()
 
+def _get_user_tool_selection(tools: dict, registry: MCPToolRegistry) -> list:
+    """Get tool selection from user through interactive checkbox interface."""
+    import questionary
 
-def _display_tool_menu(tools: dict, tool_list: list, registry: MCPToolRegistry) -> None:
-    """Display the interactive tool selection menu."""
-    print(file=sys.stderr)
-    print_message('info', "Available MCP Tools:")
-    print(file=sys.stderr)
+    # Create choices for ALL tools (not just available ones)
+    choices = []
+    for name, tool in tools.items():
+        description = f"{name} - {tool.description}"
 
-    for i, name in enumerate(tool_list, 1):
-        tool = tools[name]
-        status = " (installed)" if tool.is_installed(registry=registry) else ""
-        print(f"  {i}) {tool.description}{status}", file=sys.stderr)
+        # Add status indicators
+        if tool.is_installed(registry=registry):
+            description += " (already installed)"
+        elif not tool.check_prerequisites():
+            description += " ⚠️  (prerequisites missing)"
 
-    print("  a) Install all available tools", file=sys.stderr)
-    print("  q) Quit", file=sys.stderr)
-    print(file=sys.stderr)
+        choices.append(questionary.Choice(title=description, value=name))
 
+    # Show interactive checkbox interface
+    try:
+        selected = questionary.checkbox(
+            "Select MCP tools to install:",
+            choices=choices,
+            instruction="(Use arrow keys to navigate, space to select, enter to confirm, ctrl+c to cancel)"
+        ).ask()
 
-def _parse_selection(selection: str, tool_list: list, available_tools: list) -> list:
-    """Parse user selection and return list of selected tool names."""
-    if selection.lower() == 'q':
-        return ['__quit__']
-    elif selection.lower() == 'a':
-        return available_tools
-
-    selected = []
-    for sel in selection.split(','):
-        try:
-            idx = int(sel.strip()) - 1
-            if 0 <= idx < len(tool_list):
-                tool_name = tool_list[idx]
-                if tool_name in available_tools:
-                    selected.append(tool_name)
-                else:
-                    print_message('warning', f"{tool_name} is already installed")
-            else:
-                print_message('warning', f"Invalid selection: {sel.strip()}")
-        except ValueError:
-            print_message('warning', f"Invalid input: {sel.strip()}")
-
-    return selected
-
-
-def _get_user_tool_selection(tools: dict, available_tools: list, registry: MCPToolRegistry) -> list:
-    """Get tool selection from user through interactive menu."""
-    tool_list = list(tools.keys())
-
-    while True:
-        _display_tool_menu(tools, tool_list, registry)
-        selection = input("Select tools to install (comma-separated numbers, 'a' for all, 'q' to quit): ")
-
-        selected = _parse_selection(selection, tool_list, available_tools)
-
-        if selected == ['__quit__']:
-            print_message('info', "Goodbye!")
+        # questionary returns None if user cancels/quits (Ctrl+C or ESC)
+        if selected is None:
+            print_message('info', "Installation cancelled.")
             return []
-        elif selected:
-            return selected
 
+        # Filter out already installed tools from the selection
+        filtered_selected = []
+        for tool_name in selected:
+            tool = tools[tool_name]
+            if tool.is_installed(registry=registry):
+                print_message('info', f"{tool_name} is already installed, skipping.")
+            else:
+                filtered_selected.append(tool_name)
+
+        return filtered_selected
+
+    except KeyboardInterrupt:
+        print_message('info', "Installation cancelled.")
+        return []
 
 def _install_selected_tools(selected_tools: list, tools: dict, registry: MCPToolRegistry) -> None:
     """Install the selected tools."""
@@ -180,7 +166,7 @@ def cmd_add_interactive(_args, registry: MCPToolRegistry) -> None:
         print_message('success', "All tools are already installed!")
         return
 
-    selected_tools = _get_user_tool_selection(tools, available_tools, registry)
+    selected_tools = _get_user_tool_selection(tools, registry)
     if not selected_tools:
         return
 
@@ -204,7 +190,7 @@ def main():
     add_parser = subparsers.add_parser('add', help='Add MCP tools (use --interactive for guided selection)')
     add_parser.add_argument('tools', nargs='*', help='Tool names to install')
     add_parser.add_argument('--interactive', '-i', action='store_true',
-                           help='Interactive tool selection menu')
+                            help='Interactive tool selection menu')
 
     # Remove command
     remove_parser = subparsers.add_parser('remove', help='Remove MCP tools')

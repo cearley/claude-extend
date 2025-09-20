@@ -209,16 +209,16 @@ class TestAddInteractiveCommand:
         assert 'All tools are already installed!' in captured.err
 
     @patch('claude_extend.main.validate_interactive_environment')
-    @patch('builtins.input')
-    def test_cmd_add_interactive_quit(self, mock_input, mock_validate):
+    @patch('questionary.checkbox')
+    def test_cmd_add_interactive_quit(self, mock_checkbox, mock_validate):
         """Test interactive command with quit selection."""
         mock_validate.return_value = True
         mock_registry = MagicMock()
         mock_registry.get_available_tools.return_value = ['test-tool']
         mock_registry.list_tools.return_value = {'test-tool': MagicMock()}
-        mock_input.return_value = 'q'
+        mock_checkbox.return_value.ask.return_value = None  # User cancelled/quit
         args = MagicMock()
         args.interactive = True
 
         cmd_add(args, mock_registry)
-        mock_input.assert_called_once()
+        mock_checkbox.assert_called_once()

@@ -18,7 +18,7 @@ class TestCLIArguments:
         captured = capsys.readouterr()
 
         assert 'Claude eXtend (cx) - MCP Server Manager' in captured.out
-        assert 'Version 0.1.0' in captured.out
+        assert 'Version 0.2.0' in captured.out
         assert 'usage: cx' in captured.out
 
     @patch('claude_extend.main.MCPToolRegistry')
@@ -28,7 +28,7 @@ class TestCLIArguments:
         with pytest.raises(SystemExit):
             main()
         captured = capsys.readouterr()
-        assert 'cx 0.1.0' in captured.out
+        assert 'cx 0.2.0' in captured.out
 
     @patch('claude_extend.main.MCPToolRegistry')
     @patch('sys.argv', ['cx', '--help'])
@@ -90,18 +90,18 @@ class TestCLIIntegration:
     @patch('claude_extend.main.MCPToolRegistry')
     @patch('sys.argv', ['cx', 'add', '--interactive'])
     @patch('claude_extend.main.validate_interactive_environment')
-    @patch('builtins.input')
-    def test_add_interactive_integration(self, mock_input, mock_validate, mock_registry_class):
+    @patch('questionary.checkbox')
+    def test_add_interactive_integration(self, mock_checkbox, mock_validate, mock_registry_class):
         """Test interactive add command through main CLI."""
         mock_validate.return_value = True
-        mock_input.return_value = 'q'
+        mock_checkbox.return_value.ask.return_value = None  # User cancelled
         mock_registry = MagicMock()
         mock_registry.get_available_tools.return_value = ['test-tool']
         mock_registry.list_tools.return_value = {'test-tool': MagicMock()}
         mock_registry_class.return_value = mock_registry
 
         main()
-        mock_input.assert_called_once()
+        mock_checkbox.assert_called_once()
 
     @patch('claude_extend.main.MCPToolRegistry')
     @patch('sys.argv', ['cx', 'remove', 'test-tool'])
