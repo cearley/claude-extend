@@ -48,14 +48,14 @@ This tool manages MCP server connections for Claude Code by:
 - Listing available and installed MCP tools with status
 - Managing external configuration files for custom tool definitions
 - Supporting both dynamic installation (npx/uvx) and pre-installed servers
-- Providing interactive mode for guided tool selection
+- Providing interactive mode for guided tool selection and removal
 - Caching `claude mcp list` output for performance
 
 ### Core Components
 
 - **MCPTool**: Represents individual tools with prerequisites, descriptions, and install commands
 - **MCPToolRegistry**: Manages the collection of available tools and handles external config loading
-- **CLI Commands**: `list`, `add`, `add --interactive`, `remove`
+- **CLI Commands**: `list`, `add`, `add --interactive`, `remove`, `remove --interactive`
 - **External Config**: JSON-based tool definitions for extensibility
 
 ## Development Commands
@@ -187,9 +187,40 @@ Claude eXtend uses the Claude Desktop MCP configuration format:
     "tool-name": {
       "description": "Tool description",
       "command": "command-executable",
-      "args": ["array", "of", "command", "args"],
-      "prerequisite": "optional-prerequisite",
-      "error_message": "optional-error-message"
+      "args": ["array", "of", "command", "args"]
+    }
+  }
+}
+```
+
+**Example Configuration:**
+
+```json
+{
+  "tools": {
+    "serena": {
+      "description": "Semantic code analysis and intelligent IDE assistant",
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "ide-assistant", "--project", "{project_dir}"
+      ]
+    },
+    "basic-memory": {
+      "description": "Enhanced memory capabilities for Claude",
+      "command": "basic-memory",
+      "args": ["mcp"]
+    },
+    "filesystem": {
+      "description": "File system access for Claude",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Desktop",
+        "/Users/username/Downloads"
+      ]
     }
   }
 }
@@ -199,12 +230,11 @@ Claude eXtend uses the Claude Desktop MCP configuration format:
 
 - **Claude Desktop Compatible**: Uses `command` and `args` fields directly, matching Claude Desktop's MCP configuration
 - **Tool Name**: Tool name is derived from the JSON key, no redundant `name` field needed
-- **prerequisite**: Auto-inferred from `command` if not provided. Special case: "npm" checks for either `npm` or `npx`
-- **error_message**: Auto-generated if not provided based on prerequisite
-- **args**: Supports `{project_dir}` placeholder replacement
+- **Prerequisite Checking**: Automatically checks if the `command` is available using `shutil.which()` before installation
+- **args**: Supports `{project_dir}` placeholder replacement for project-relative paths
 - **Claude Desktop Export**: `MCPTool.to_claude_desktop_format()` method exports in Claude Desktop format
-- External config loading handled in `MCPToolRegistry._load_tools()` with fallback to hardcoded defaults
-- Configuration validation and loading functions in `utils.py`: `get_config_path()`, `load_external_tools_config()`
+- **External Config Loading**: Handled in `MCPToolRegistry._load_tools()` with fallback to hardcoded defaults
+- **Configuration Functions**: `get_config_path()`, `load_external_tools_config()` in `utils.py`
 
 ## Release Process
 
