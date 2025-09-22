@@ -113,15 +113,19 @@ Create a JSON file with the following structure:
 {
   "tools": {
     "my-custom-server": {
-      "name": "my-custom-server",
       "description": "My custom MCP server",
-      "prerequisite": "npx",
-      "error_message": "npx not found. Please install Node.js first.",
-      "install_command": ["claude", "mcp", "add", "my-custom-server", "--", "npx", "-y", "my-custom-server"]
+      "command": "npx",
+      "args": ["-y", "my-custom-server"]
     }
   }
 }
 ```
+
+The format matches Claude Desktop's MCP configuration:
+- **Tool name**: Derived from the JSON key (no separate `name` field needed)
+- **description**: Human-readable description of the tool
+- **command**: The executable command (e.g., `npx`, `uvx`, `python`)
+- **args**: Array of command arguments, supports `{project_dir}` placeholder
 
 ### Example: Adding basic-memory
 
@@ -148,11 +152,9 @@ cat > ~/.config/claude-extend/tools.json << 'EOF'
 {
   "tools": {
     "basic-memory": {
-      "name": "basic-memory",
       "description": "AI-powered memory system for contextual understanding",
-      "prerequisite": "basic-memory",
-      "error_message": "basic-memory not found. Install with: curl -LsSf https://basicmemory.com/install/latest.sh | sh",
-      "install_command": ["claude", "mcp", "add", "basic-memory", "basic-memory", "mcp"]
+      "command": "basic-memory",
+      "args": ["mcp"]
     }
   }
 }
@@ -173,12 +175,12 @@ cx add basic-memory
 
 **How it works:**
 
-- The `"prerequisite": "basic-memory"` field tells Claude eXtend to check if the `basic-memory` command is available in your system PATH before attempting to add it
+- Claude eXtend automatically checks if the `basic-memory` command is available in your system PATH before attempting to add it
 - After running the installation script, `basic-memory` becomes a valid system command that can be executed from anywhere
-- Claude eXtend uses Python's `shutil.which()` to verify the prerequisite exists before proceeding
-- The `install_command` uses the Claude Code MCP configuration command documented in the [basic-memory Claude Code integration guide](https://docs.basicmemory.com/integrations/claude-code/#configure-claude-code)
+- Claude eXtend uses Python's `shutil.which()` to verify the command exists before proceeding
+- The `command` and `args` fields define how to execute the MCP server (equivalent to running `basic-memory mcp`)
 
-When you run `cx add basic-memory`, Claude eXtend will first check that the `basic-memory` command is available, then execute the install command to configure Claude Code with the basic-memory MCP server.
+When you run `cx add basic-memory`, Claude eXtend will first check that the `basic-memory` command is available, then execute `claude mcp add basic-memory -- basic-memory mcp` to configure Claude Code with the basic-memory MCP server.
 
 ## What are MCP Servers?
 
@@ -193,7 +195,7 @@ Claude eXtend helps you manage which of these installed servers are active in yo
 
 ## Security Considerations
 
-⚠️ **Important**: The `install_command` entries in external `tools.json` configuration files are executed directly on your machine. Only use configuration files from trusted sources, and always review their contents before use. Treat these files like any other script - they should be reviewed and trusted before execution.
+⚠️ **Important**: The `command` and `args` entries in external `tools.json` configuration files define commands that are executed directly on your machine. Only use configuration files from trusted sources, and always review their contents before use. Treat these files like any other script - they should be reviewed and trusted before execution.
 
 ## Requirements
 

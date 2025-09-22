@@ -78,7 +78,7 @@ class TestCLIIntegration:
         mock_tool.description = "Test Tool"
         mock_tool.check_prerequisites.return_value = True
         mock_tool.install.return_value = True
-        mock_registry.get_tool.return_value = mock_tool
+        mock_registry.list_tools.return_value = {'test-tool': mock_tool}
         mock_registry_class.return_value = mock_registry
 
         main()
@@ -113,7 +113,7 @@ class TestCLIIntegration:
         mock_tool = MagicMock()
         mock_tool.description = "Test Tool"
         mock_tool.remove.return_value = True
-        mock_registry.get_tool.return_value = mock_tool
+        mock_registry.list_tools.return_value = {'test-tool': mock_tool}
         mock_registry_class.return_value = mock_registry
 
         main()
@@ -129,8 +129,7 @@ class TestCLIIntegration:
         """Test remove command with unknown tool through main CLI."""
         mock_validate.return_value = True
         mock_registry = MagicMock()
-        mock_registry.get_tool.return_value = None
-        mock_registry.get_tool_names.return_value = ['test-tool']
+        mock_registry.list_tools.return_value = {}
         mock_registry_class.return_value = mock_registry
 
         main()

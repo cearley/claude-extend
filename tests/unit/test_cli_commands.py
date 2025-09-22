@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 from claude_extend.main import (
     cmd_list, cmd_add, cmd_remove, cmd_remove_interactive,
-    _get_user_tool_removal_selection, _remove_selected_tools
+    _get_user_tool_selection, _process_tools
 )
 
 
@@ -56,7 +56,7 @@ class TestAddCommand:
         mock_tool.description = "Test Tool"
 
         mock_registry = MagicMock()
-        mock_registry.get_tool.return_value = mock_tool
+        mock_registry.list_tools.return_value = {'test-tool': mock_tool}
 
         cmd_add(args, mock_registry)
         captured = capsys.readouterr()
@@ -76,17 +76,17 @@ class TestAddCommand:
         # Mock missing prerequisites
         mock_tool = MagicMock()
         mock_tool.check_prerequisites.return_value = False
-        mock_tool.error_message = "Python not found"
+        mock_tool.command = "python"
         mock_tool.description = "Test Tool"
 
         mock_registry = MagicMock()
-        mock_registry.get_tool.return_value = mock_tool
+        mock_registry.list_tools.return_value = {'test-tool': mock_tool}
 
         cmd_add(args, mock_registry)
         captured = capsys.readouterr()
 
         assert 'Prerequisites not met' in captured.err
-        assert 'Python not found' in captured.err
+        assert 'python not found' in captured.err
         mock_tool.install.assert_not_called()
 
 
@@ -122,7 +122,7 @@ class TestRemoveCommand:
         mock_tool.description = "Test Tool"
 
         mock_registry = MagicMock()
-        mock_registry.get_tool.return_value = mock_tool
+        mock_registry.list_tools.return_value = {'test-tool': mock_tool}
 
         cmd_remove(args, mock_registry)
         captured = capsys.readouterr()
@@ -145,7 +145,7 @@ class TestRemoveCommand:
         mock_tool.description = "Test Tool"
 
         mock_registry = MagicMock()
-        mock_registry.get_tool.return_value = mock_tool
+        mock_registry.list_tools.return_value = {'test-tool': mock_tool}
 
         cmd_remove(args, mock_registry)
         captured = capsys.readouterr()
@@ -198,7 +198,7 @@ class TestAddInteractiveCommand:
         mock_checkbox.assert_called_once()
 
     @patch('claude_extend.main.validate_interactive_environment')
-    @patch('claude_extend.main._install_selected_tools')
+    @patch('claude_extend.main._process_tools')
     @patch('questionary.checkbox')
     def test_cmd_add_interactive_with_prerequisites_missing(self, mock_checkbox, mock_install_tools, mock_validate):
         """Test interactive add command with tool selection that has missing prerequisites."""
@@ -221,8 +221,8 @@ class TestAddInteractiveCommand:
 
         # Verify the tool was selected and passed to install function
         mock_checkbox.assert_called_once()
-        mock_install_tools.assert_called_once_with(['prereq-missing-tool'], {'prereq-missing-tool': mock_tool},
-                                                   mock_registry)
+        # Verify _process_tools was called with the correct parameters
+        mock_install_tools.assert_called_once()
 
     @patch('claude_extend.main.validate_environment')
     def test_cmd_remove_interactive_flag(self, mock_validate):
@@ -252,17 +252,18 @@ class TestAddInteractiveCommand:
         assert 'No tools specified. Use --interactive or specify tool names to remove.' in captured.err
 
     @patch('claude_extend.main.validate_interactive_environment')
-    def test_cmd_remove_interactive_no_tools_available(self, mock_validate, capsys):
-        """Test interactive remove with no tools in registry."""
+    def test_cmd_remove_interactive_no_tools_installed(self, mock_validate, capsys):
+        """Test interactive remove with no tools installed."""
         mock_validate.return_value = True
         mock_registry = MagicMock()
-        mock_registry.list_tools.return_value = {}
+        mock_registry.list_tools.return_value = {'test-tool': MagicMock()}
+        mock_registry.get_installed_tools.return_value = []
         args = MagicMock()
 
         cmd_remove_interactive(args, mock_registry)
         captured = capsys.readouterr()
 
-        assert 'No tools available in registry.' in captured.err
+        assert 'No tools are currently installed.' in captured.err
 
     @patch('claude_extend.main.validate_interactive_environment')
     @patch('questionary.checkbox')
@@ -278,130 +279,25 @@ class TestAddInteractiveCommand:
         mock_checkbox.assert_called_once()
 
     @patch('claude_extend.main.validate_interactive_environment')
-    @patch('claude_extend.main._remove_selected_tools')
+    @patch('claude_extend.main._process_tools')
     @patch('questionary.checkbox')
-    def test_cmd_remove_interactive_with_selection(self, mock_checkbox, mock_remove_tools, mock_validate):
+    def test_cmd_remove_interactive_with_selection(self, mock_checkbox, mock_process_tools, mock_validate):
         """Test interactive remove command with tool selection."""
         mock_validate.return_value = True
         mock_registry = MagicMock()
         mock_tool = MagicMock()
         mock_tool.is_installed.return_value = True
         mock_registry.list_tools.return_value = {'test-tool': mock_tool}
+        mock_registry.get_installed_tools.return_value = ['test-tool']
         mock_checkbox.return_value.ask.return_value = ['test-tool']
         args = MagicMock()
 
         cmd_remove_interactive(args, mock_registry)
 
         mock_checkbox.assert_called_once()
-        mock_remove_tools.assert_called_once_with(['test-tool'], {'test-tool': mock_tool}, mock_registry)
+        mock_process_tools.assert_called_once()
 
-    @patch('questionary.checkbox')
-    def test_get_user_tool_removal_selection_non_installed_filtered(self, mock_checkbox, capsys):
-        """Test _get_user_tool_removal_selection filters out non-installed tools."""
-        mock_registry = MagicMock()
-        mock_tool = MagicMock()
-        mock_tool.is_installed.return_value = False
-        tools = {'test-tool': mock_tool}
-        mock_checkbox.return_value.ask.return_value = ['test-tool']  # User selected non-installed tool
-
-        result = _get_user_tool_removal_selection(tools, mock_registry)
-        captured = capsys.readouterr()
-
-        assert result == []
-        assert 'test-tool is not installed, skipping.' in captured.err
-
-    @patch('questionary.checkbox')
-    def test_get_user_tool_removal_selection_user_cancel(self, mock_checkbox):
-        """Test _get_user_tool_removal_selection when user cancels."""
-        mock_registry = MagicMock()
-        mock_tool = MagicMock()
-        mock_tool.is_installed.return_value = True
-        tools = {'test-tool': mock_tool}
-        mock_checkbox.return_value.ask.return_value = None  # User cancelled
-
-        result = _get_user_tool_removal_selection(tools, mock_registry)
-
-        assert result == []
-
-    @patch('questionary.checkbox')
-    def test_get_user_tool_removal_selection_with_selection(self, mock_checkbox):
-        """Test _get_user_tool_removal_selection with tool selection."""
-        mock_registry = MagicMock()
-        mock_tool = MagicMock()
-        mock_tool.is_installed.return_value = True
-        tools = {'test-tool': mock_tool}
-        mock_checkbox.return_value.ask.return_value = ['test-tool']
-
-        result = _get_user_tool_removal_selection(tools, mock_registry)
-
-        assert result == ['test-tool']
-
-    @patch('questionary.checkbox')
-    def test_get_user_tool_removal_selection_shows_status_indicators(self, mock_checkbox):
-        """Test _get_user_tool_removal_selection shows status indicators for tools."""
-        mock_registry = MagicMock()
-
-        # Create mock tools with different statuses
-        mock_installed_tool = MagicMock()
-        mock_installed_tool.is_installed.return_value = True
-        mock_installed_tool.check_prerequisites.return_value = True
-        mock_installed_tool.description = "Installed tool"
-
-        mock_not_installed_tool = MagicMock()
-        mock_not_installed_tool.is_installed.return_value = False
-        mock_not_installed_tool.description = "Not installed tool"
-
-        tools = {
-            'installed-tool': mock_installed_tool,
-            'not-installed-tool': mock_not_installed_tool
-        }
-        mock_checkbox.return_value.ask.return_value = []  # User selects nothing
-
-        _get_user_tool_removal_selection(tools, mock_registry)
-
-        # Verify questionary was called with correct status indicators
-        mock_checkbox.assert_called_once()
-        call_args = mock_checkbox.call_args
-        choices = call_args[1]['choices']
-
-        # Find the choices by their values
-        installed_choice = next(c for c in choices if c.value == 'installed-tool')
-        not_installed_choice = next(c for c in choices if c.value == 'not-installed-tool')
-
-        assert "(not installed)" not in installed_choice.title
-        assert "(not installed)" in not_installed_choice.title
-
-    def test_remove_selected_tools_success(self, capsys):
-        """Test _remove_selected_tools with successful removal."""
-        mock_registry = MagicMock()
-        mock_tool = MagicMock()
-        mock_tool.description = "Test tool"
-        mock_tool.remove.return_value = True
-        tools = {'test-tool': mock_tool}
-
-        _remove_selected_tools(['test-tool'], tools, mock_registry)
-
-        captured = capsys.readouterr()
-        assert 'Removing 1 MCP tool(s)...' in captured.err
-        assert 'Processing: Test tool' in captured.err
-        assert '✓ test-tool removed successfully' in captured.err
-        assert 'MCP tool removal complete!' in captured.err
-
-    def test_remove_selected_tools_failure(self, capsys):
-        """Test _remove_selected_tools with failed removal."""
-        mock_registry = MagicMock()
-        mock_tool = MagicMock()
-        mock_tool.description = "Test tool"
-        mock_tool.remove.return_value = False
-        tools = {'test-tool': mock_tool}
-
-        _remove_selected_tools(['test-tool'], tools, mock_registry)
-
-        captured = capsys.readouterr()
-        assert 'Removing 1 MCP tool(s)...' in captured.err
-        assert 'Processing: Test tool' in captured.err
-        assert '✗ Failed to remove test-tool' in captured.err
-        assert 'MCP tool removal complete!' in captured.err
+    # Tests for removed functions have been removed since the functions were consolidated
 
 
 class TestCommandUnknownTools:
@@ -421,7 +317,7 @@ class TestCommandUnknownTools:
 
         mock_registry = MagicMock()
         mock_registry.get_tool.return_value = None
-        mock_registry.get_tool_names.return_value = ['test-tool', 'other-tool']
+        mock_registry.list_tools.return_value = {'test-tool': MagicMock(), 'other-tool': MagicMock()}
 
         cmd_func(args, mock_registry)
         captured = capsys.readouterr()

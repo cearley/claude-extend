@@ -8,16 +8,14 @@ from typing import Dict, Optional
 
 
 class Colors:
-    """ANSI color codes for terminal output."""
     RED = '\033[0;31m'
     GREEN = '\033[0;32m'
     YELLOW = '\033[1;33m'
     BLUE = '\033[0;34m'
-    NC = '\033[0m'  # No Color
+    NC = '\033[0m'
 
 
 def print_message(level: str, message: str) -> None:
-    """Print colored messages to stderr."""
     icons = {
         'info': 'ℹ️',
         'success': '✅',
@@ -38,7 +36,6 @@ def print_message(level: str, message: str) -> None:
 
 
 def validate_environment() -> bool:
-    """Validate we're in a project directory and have Claude CLI."""
     project_files = ['package.json', 'pyproject.toml', 'Cargo.toml', '.git', 'go.mod']
 
     if not any(Path(f).exists() for f in project_files):
@@ -55,7 +52,6 @@ def validate_environment() -> bool:
 
 
 def validate_interactive_environment() -> bool:
-    """Validate environment for interactive commands."""
     if not validate_environment():
         return False
 
@@ -67,23 +63,13 @@ def validate_interactive_environment() -> bool:
 
 
 def get_config_path() -> Optional[Path]:
-    """Get the path to the external tools configuration file.
-
-    Returns the first existing config file found, or None if no config exists.
-    Checks in order:
-    1. CLAUDE_EXTEND_CONFIG environment variable
-    2. ~/.config/claude-extend/tools.json
-    3. ~/.claude-extend/tools.json
-    """
     
-    # Check environment variable first
     env_config = os.environ.get('CLAUDE_EXTEND_CONFIG')
     if env_config:
         config_path = Path(env_config)
         if config_path.exists():
             return config_path
     
-    # Check standard config locations
     config_locations = [
         Path.home() / '.config' / 'claude-extend' / 'tools.json',
         Path.home() / '.claude-extend' / 'tools.json'
@@ -97,24 +83,6 @@ def get_config_path() -> Optional[Path]:
 
 
 def load_external_tools_config(config_path: Path) -> Dict[str, Dict[str, any]]:
-    """Load tools configuration from external JSON file.
-    
-    Expected JSON format:
-    {
-        "tools": {
-            "tool-name": {
-                "name": "tool-name",
-                "description": "Tool description",
-                "prerequisite": "command-name",
-                "error_message": "Error message if prerequisite missing",
-                "install_command": ["list", "of", "command", "args"]
-            }
-        }
-    }
-    
-    Returns:
-        Dict of tool configurations (not MCPTool objects to avoid circular imports)
-    """
     import json
     
     with open(config_path, 'r', encoding='utf-8') as f:

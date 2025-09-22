@@ -11,9 +11,8 @@ def mock_tool():
     return MCPTool(
         name="test-tool",
         description="Test Tool - A tool for testing",
-        prerequisite="python",
-        error_message="Python not found",
-        install_command=["echo", "installing", "test-tool"]
+        command="echo",
+        args=["installing", "test-tool"]
     )
 
 
@@ -26,16 +25,14 @@ def mock_registry(mock_claude_mcp_calls):
         "test-tool": MCPTool(
             name="test-tool",
             description="Test Tool - A tool for testing",
-            prerequisite="python",
-            error_message="Python not found",
-            install_command=["echo", "installing", "test-tool"]
+            command="echo",
+            args=["installing", "test-tool"]
         ),
         "another-tool": MCPTool(
             name="another-tool",
             description="Another Tool - Another testing tool",
-            prerequisite="node",
-            error_message="Node.js not found",
-            install_command=["echo", "installing", "another-tool"]
+            command="echo",
+            args=["installing", "another-tool"]
         )
     }
     return registry

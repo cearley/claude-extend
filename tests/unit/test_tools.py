@@ -14,9 +14,8 @@ class TestMCPTool:
         """Test MCPTool initialization."""
         assert mock_tool.name == "test-tool"
         assert mock_tool.description == "Test Tool - A tool for testing"
-        assert mock_tool.prerequisite == "python"
-        assert mock_tool.error_message == "Python not found"
-        assert mock_tool.install_command == ["echo", "installing", "test-tool"]
+        assert mock_tool.command == "echo"
+        assert mock_tool.args == ["installing", "test-tool"]
 
     def test_check_prerequisites_available(self, mock_tool, mock_shutil_which):
         """Test prerequisite checking when available."""
@@ -28,21 +27,22 @@ class TestMCPTool:
         mock_shutil_which.return_value = None
         assert mock_tool.check_prerequisites() is False
 
-    def test_check_prerequisites_npm(self, mock_shutil_which):
-        """Test npm prerequisite checking."""
-        tool = MCPTool("test", "desc", "npm", "error", ["cmd"])
-
-        # Test with npm available
-        mock_shutil_which.side_effect = lambda cmd: "/usr/bin/npm" if cmd == "npm" else None
-        assert tool.check_prerequisites() is True
+    def test_check_prerequisites_command_specific(self, mock_shutil_which):
+        """Test prerequisite checking for specific commands."""
+        npx_tool = MCPTool(
+            name="test-npx",
+            description="desc",
+            command="npx",
+            args=["-y", "some-package"]
+        )
 
         # Test with npx available
         mock_shutil_which.side_effect = lambda cmd: "/usr/bin/npx" if cmd == "npx" else None
-        assert tool.check_prerequisites() is True
+        assert npx_tool.check_prerequisites() is True
 
-        # Test with neither available
+        # Test with npx not available
         mock_shutil_which.side_effect = lambda cmd: None
-        assert tool.check_prerequisites() is False
+        assert npx_tool.check_prerequisites() is False
 
     def test_is_installed_true(self, mock_tool):
         """Test is_installed when tool is installed."""
@@ -78,7 +78,8 @@ class TestMCPTool:
         result = mock_tool.install(mock_registry, "/test/project")
 
         assert result is True
-        mock_run.assert_called_once_with(["echo", "installing", "test-tool"], check=True)
+        expected_command = ['claude', 'mcp', 'add', 'test-tool', '--', 'echo', 'installing', 'test-tool']
+        mock_run.assert_called_once_with(expected_command, check=True)
 
     def test_install_already_installed(self, mock_tool):
         """Test installing tool that's already installed."""
@@ -103,13 +104,12 @@ class TestMCPTool:
     @patch('subprocess.run')
     def test_install_with_project_dir_placeholder(self, mock_run):
         """Test installation with project directory placeholder replacement."""
-        # Create a tool with project_dir placeholder in install command
+        # Create a tool with project_dir placeholder in args
         tool_with_placeholder = MCPTool(
             name="test-tool",
             description="Test Tool with placeholder",
-            prerequisite="python",
-            error_message="Python not found",
-            install_command=["echo", "installing", "in", "{project_dir}"]
+            command="echo",
+            args=["installing", "in", "{project_dir}"]
         )
 
         mock_registry = MagicMock()
@@ -119,7 +119,8 @@ class TestMCPTool:
 
         assert result is True
         # Verify the placeholder was replaced with the actual project directory
-        mock_run.assert_called_once_with(["echo", "installing", "in", "/custom/project"], check=True)
+        expected_command = ['claude', 'mcp', 'add', 'test-tool', '--', 'echo', 'installing', 'in', '/custom/project']
+        mock_run.assert_called_once_with(expected_command, check=True)
 
     @patch('subprocess.run')
     def test_remove_success(self, mock_run, mock_tool):
@@ -214,18 +215,16 @@ class TestMCPToolRegistryExternalConfig:
     """Test MCPToolRegistry with external configuration."""
 
     def test_load_tools_with_external_config(self, tmp_path, monkeypatch, mock_claude_mcp_calls):
-        """Test loading tools from external config file."""
+        """Test loading tools from external config file with new format."""
         from claude_extend.tools import MCPToolRegistry
-
-        # Create external config
+        
+        # Create external config with new format (no name field)
         config_data = {
             "tools": {
                 "custom-tool": {
-                    "name": "custom-tool",
                     "description": "Custom Tool - A custom MCP tool",
-                    "prerequisite": "python",
-                    "error_message": "Python not found",
-                    "install_command": ["echo", "installing", "custom-tool"]
+                    "command": "python",
+                    "args": ["-m", "custom_tool"]
                 }
             }
         }
@@ -233,11 +232,15 @@ class TestMCPToolRegistryExternalConfig:
         config_file = tmp_path / "tools.json"
         config_file.write_text(json.dumps(config_data))
 
-        # Mock get_config_path to return our test config
+        # Mock the utils functions properly
         def mock_get_config_path():
             return config_file
 
+        def mock_load_external_tools_config(path):
+            return config_data["tools"]
+
         monkeypatch.setattr('claude_extend.utils.get_config_path', mock_get_config_path)
+        monkeypatch.setattr('claude_extend.utils.load_external_tools_config', mock_load_external_tools_config)
 
         # Create registry
         registry = MCPToolRegistry()
@@ -246,6 +249,74 @@ class TestMCPToolRegistryExternalConfig:
         assert "custom-tool" in registry.tools
         assert registry.tools["custom-tool"].name == "custom-tool"
         assert registry.tools["custom-tool"].description == "Custom Tool - A custom MCP tool"
+        assert registry.tools["custom-tool"].command == "python"
+        assert registry.tools["custom-tool"].args == ["-m", "custom_tool"]
+
+
+    def test_new_format_initialization(self):
+        """Test MCPTool initialization with new Claude Desktop format."""
+        tool = MCPTool(
+            name="test-tool",
+            description="Test tool",
+            command="npx",
+            args=["-y", "@test/package"]
+        )
+
+        assert tool.name == "test-tool"
+        assert tool.description == "Test tool"
+        assert tool.command == "npx"
+        assert tool.args == ["-y", "@test/package"]
+        # Test basic functionality
+        assert tool.check_prerequisites() is not None
+
+    def test_to_claude_desktop_format(self):
+        """Test conversion to Claude Desktop format."""
+        tool = MCPTool(
+            name="filesystem",
+            description="Filesystem server",
+            command="npx",
+            args=["-y", "@modelcontextprotocol/server-filesystem", "/path1", "/path2"]
+        )
+        
+        claude_format = tool.to_claude_desktop_format()
+        expected = {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path1", "/path2"]
+        }
+        assert claude_format == expected
+
+    def test_prerequisite_checking(self):
+        """Test prerequisite checking for different commands."""
+        # Test different commands
+        npm_tool = MCPTool(
+            name="test-npm",
+            description="test",
+            command="npm",
+            args=["arg1"]
+        )
+        uvx_tool = MCPTool(
+            name="test-uvx",
+            description="test",
+            command="uvx",
+            args=["arg1"]
+        )
+
+        # Both should have functioning prerequisite checks
+        assert isinstance(npm_tool.check_prerequisites(), bool)
+        assert isinstance(uvx_tool.check_prerequisites(), bool)
+
+    def test_tool_creation(self):
+        """Test basic tool creation and functionality."""
+        tool = MCPTool(
+            name="test",
+            description="test",
+            command="uvx",
+            args=["arg1"]
+        )
+        assert tool.name == "test"
+        assert tool.description == "test"
+        assert tool.command == "uvx"
+        assert tool.args == ["arg1"]
 
     def test_load_tools_external_config_failure_fallback(self, tmp_path, monkeypatch, capsys, mock_claude_mcp_calls):
         """Test fallback to defaults when external config fails."""

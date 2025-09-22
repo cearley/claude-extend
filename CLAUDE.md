@@ -179,15 +179,17 @@ Claude eXtend supports loading custom MCP tool definitions from external JSON co
 
 ### Configuration Format
 
+Claude eXtend uses the Claude Desktop MCP configuration format:
+
 ```json
 {
   "tools": {
     "tool-name": {
-      "name": "tool-name",
       "description": "Tool description",
-      "prerequisite": "command-executable",
-      "error_message": "Error when prerequisite missing",
-      "install_command": ["array", "of", "command", "args"]
+      "command": "command-executable",
+      "args": ["array", "of", "command", "args"],
+      "prerequisite": "optional-prerequisite",
+      "error_message": "optional-error-message"
     }
   }
 }
@@ -195,7 +197,11 @@ Claude eXtend supports loading custom MCP tool definitions from external JSON co
 
 ### Key Implementation Details
 
-- **prerequisite**: Name of executable checked with `shutil.which()`. Special case: "npm" checks for either `npm` or `npx`
-- **install_command**: Array of command arguments. Supports `{project_dir}` placeholder replacement
-- External config loading is handled in `MCPToolRegistry._load_tools()` with fallback to hardcoded defaults
+- **Claude Desktop Compatible**: Uses `command` and `args` fields directly, matching Claude Desktop's MCP configuration
+- **Tool Name**: Tool name is derived from the JSON key, no redundant `name` field needed
+- **prerequisite**: Auto-inferred from `command` if not provided. Special case: "npm" checks for either `npm` or `npx`
+- **error_message**: Auto-generated if not provided based on prerequisite
+- **args**: Supports `{project_dir}` placeholder replacement
+- **Claude Desktop Export**: `MCPTool.to_claude_desktop_format()` method exports in Claude Desktop format
+- External config loading handled in `MCPToolRegistry._load_tools()` with fallback to hardcoded defaults
 - Configuration validation and loading functions in `utils.py`: `get_config_path()`, `load_external_tools_config()`
