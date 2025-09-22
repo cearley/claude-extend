@@ -90,12 +90,12 @@ cx
 
 **Run without installation (recommended for users):**
 ```bash
-uvx --from git+https://github.com/cearley/claude-extend cx
+uvx --from git+https://github.com/cearley/claude-extend@latest cx
 ```
 
 **Install locally from GitHub:**
 ```bash
-uv tool install git+https://github.com/cearley/claude-extend
+uv tool install git+https://github.com/cearley/claude-extend@latest
 ```
 
 **Install from source:**
@@ -205,3 +205,67 @@ Claude eXtend uses the Claude Desktop MCP configuration format:
 - **Claude Desktop Export**: `MCPTool.to_claude_desktop_format()` method exports in Claude Desktop format
 - External config loading handled in `MCPToolRegistry._load_tools()` with fallback to hardcoded defaults
 - Configuration validation and loading functions in `utils.py`: `get_config_path()`, `load_external_tools_config()`
+
+## Release Process
+
+When creating a new release, follow these steps to maintain the `latest` tag:
+
+### 1. Update Version
+Update the version in `src/claude_extend/__init__.py`:
+```python
+__version__ = "x.y.z"
+```
+
+### 2. Run Tests
+Ensure all tests pass:
+```bash
+uv run pytest
+```
+
+### 3. Create Version Tag and Latest Tag
+```bash
+# Create version-specific tag
+git tag vx.y.z
+
+# Move 'latest' tag to new release (delete old, create new)
+git tag -d latest
+git tag latest
+
+# Or force update the latest tag in one command
+git tag -f latest
+```
+
+### 4. Push to GitHub
+```bash
+# Push the commit
+git push origin main
+
+# Push the version tag
+git push origin vx.y.z
+
+# Force push the updated latest tag
+git push -f origin latest
+```
+
+### 5. Create GitHub Release
+Create a release on GitHub using the version tag (vx.y.z) for detailed release notes, while the `latest` tag provides an easy reference for users.
+
+### Why Use a 'Latest' Tag?
+
+The `latest` tag allows users to always install the most recent stable release without knowing the specific version number:
+
+```bash
+# Always gets the newest release
+uvx --from git+https://github.com/cearley/claude-extend@latest cx list
+
+# Instead of having to remember specific versions
+uvx --from git+https://github.com/cearley/claude-extend@v0.2.0 cx list
+```
+
+### Git Tag Management Notes
+
+- **Version tags** (v0.1.0, v0.2.0, etc.) are permanent and never moved
+- **Latest tag** is a moving pointer that gets updated with each release
+- Force pushing the `latest` tag is necessary and safe since it's designed to move
+- Users who want stability should pin to specific version tags
+- Users who want convenience should use the `latest` tag
